@@ -933,7 +933,7 @@ function submitDaily() {
 }
 
 function fireFF(data) {
-  if(!SCRIPT_URL||SCRIPT_URL==='YOUR_COST_SCRIPT_URL'){console.log('Cost payload:',data);return;}
+  if(!SCRIPT_URL||SCRIPT_URL==='https://script.google.com/macros/s/AKfycbxcu0GJQKVtE2hVbYjixahHiAzcsie-Vmu8ELRIj5zSsIcZHlxhYAB-Zo-hgqIoyXHB/exec'){console.log('Cost payload:',data);return;}
   try{
     const img=document.createElement('img');
     img.src=SCRIPT_URL+'?payload='+encodeURIComponent(JSON.stringify(data));
