@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IGCC — Daily Cost Input</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -108,10 +109,38 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
 .field-label{font-size:11px;font-weight:600;color:var(--label);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px;display:block;}
 .divider{border:none;border-top:1px solid var(--border);margin:12px 0;}
 .hidden{display:none!important;}
+/* ACCESS CONTROL */
+.auth-screen{position:fixed;inset:0;background:#f0f4f8;display:flex;align-items:center;justify-content:center;z-index:9999;}
+.auth-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:44px 40px;max-width:400px;width:100%;box-shadow:var(--shadow-md);text-align:center;}
+.auth-logo{background:var(--accent);color:#fff;font-family:var(--mono);font-size:18px;font-weight:700;width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;}
+.auth-title{font-size:20px;font-weight:700;color:var(--text);margin-bottom:6px;}
+.auth-sub{font-size:13px;color:var(--muted);margin-bottom:28px;line-height:1.6;}
+.auth-error{background:rgba(220,38,38,.06);border:1px solid rgba(220,38,38,.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--danger);margin-top:16px;display:none;}
+.auth-error.show{display:block;}
+.auth-user{display:flex;align-items:center;gap:10px;background:rgba(22,163,74,.06);border:1px solid rgba(22,163,74,.2);border-radius:8px;padding:10px 14px;margin-bottom:14px;text-align:left;}
+.auth-avatar{width:34px;height:34px;border-radius:50%;object-fit:cover;}
+.auth-name{font-size:13px;font-weight:600;color:var(--text);}
+.auth-email{font-size:11px;color:var(--muted);font-family:var(--mono);}
+.btn-signout{background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;font-family:var(--sans);font-size:12px;padding:6px 12px;position:absolute;top:14px;right:24px;}
+.btn-signout:hover{border-color:var(--danger);color:var(--danger);}
 @media(max-width:700px){.summary-bar{grid-template-columns:1fr 1fr;}.add-emp-grid{grid-template-columns:1fr 1fr;}.border-row{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
+
+<!-- AUTH SCREEN -->
+<div class="auth-screen" id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">IG</div>
+    <div class="auth-title">IGCC Cost Input</div>
+    <div class="auth-sub">Sign in with your company Google account to access the daily cost input form.</div>
+    <div id="google-signin-btn" style="display:flex;justify-content:center;"></div>
+    <div class="auth-error" id="auth-error">Access denied — your email is not authorized. Contact mohammed.lateef@igccgroup-iq.com</div>
+  </div>
+</div>
+
+<!-- SIGN OUT BUTTON (shown when logged in) -->
+<button class="btn-signout hidden" id="btn-signout" onclick="signOut()">Sign out</button>
 
 <div class="header">
   <div style="display:flex;align-items:center;">
@@ -325,13 +354,37 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
 
     <!-- UPDATE PO AMOUNT -->
     <div class="update-po-box" style="margin-top:12px;">
-      <div style="font-size:12px;font-weight:600;color:var(--warning);margin-bottom:10px;">🔄 Update PO Amount for existing record</div>
-      <div class="update-po-grid">
-        <div><label class="field-label">PO # to update</label><input type="text" id="update-pono" placeholder="e.g. PO-2024-001" class="mono-input"></div>
-        <div><label class="field-label">PO Amount (IQD)</label><input type="number" id="update-po-amount" placeholder="0"></div>
-        <button class="btn-sm btn-sm-primary" style="height:38px;margin-top:18px;" onclick="updatePOAmount()">Update</button>
+      <div style="font-size:12px;font-weight:600;color:var(--warning);margin-bottom:10px;">🔄 Add / Update PO Numbers for existing ROP</div>
+
+      <!-- Step 1: Search by ROP -->
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:10px;align-items:end;margin-bottom:10px;">
+        <div><label class="field-label">ROP # to search</label>
+          <input type="text" id="search-rop" placeholder="e.g. ROP-2024-001" class="mono-input"></div>
+        <button class="btn-sm btn-sm-primary" style="height:38px;margin-top:18px;" onclick="searchByROP()">Search</button>
       </div>
-      <div id="update-po-status" style="font-size:12px;margin-top:6px;font-family:var(--mono);"></div>
+      <div id="rop-search-status" style="font-size:12px;font-family:var(--mono);margin-bottom:8px;"></div>
+
+      <!-- Step 2: ROP info + PO list (shown after search) -->
+      <div id="rop-po-panel" style="display:none;">
+        <div id="rop-info" style="background:rgba(2,132,199,.06);border:1px solid rgba(2,132,199,.2);border-radius:6px;padding:10px 12px;margin-bottom:10px;font-size:12px;"></div>
+
+        <!-- Existing POs -->
+        <div style="font-size:11px;font-weight:600;color:var(--label);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">PO Numbers linked to this ROP</div>
+        <div id="existing-po-list" style="margin-bottom:10px;"></div>
+
+        <!-- Add new PO -->
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;">
+          <div style="font-size:11px;font-weight:600;color:var(--label);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Add New PO</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;">
+            <div><label class="field-label">PO #</label>
+              <input type="text" id="new-po-number" placeholder="PO-XXXX" class="mono-input"></div>
+            <div><label class="field-label">PO Amount (IQD)</label>
+              <input type="number" id="new-po-amount" placeholder="0"></div>
+            <button class="btn-sm btn-sm-primary" style="height:38px;margin-top:18px;" onclick="addPOtoROP()">+ Add PO</button>
+          </div>
+        </div>
+        <div id="update-po-status" style="font-size:12px;font-family:var(--mono);"></div>
+      </div>
     </div>
   </div>
 
@@ -731,19 +784,96 @@ function addProcRow() {
   document.getElementById('proc-tbody').appendChild(tr);
 }
 
-async function updatePOAmount() {
-  const pono   = document.getElementById('update-pono').value.trim();
-  const amount = document.getElementById('update-po-amount').value.trim();
+// ── ROP SEARCH & PO MANAGEMENT ───────────────────────────────────────────────
+let currentROP = null;
+let currentROPData = null;
+
+async function searchByROP() {
+  const rop    = document.getElementById('search-rop').value.trim();
+  const status = document.getElementById('rop-search-status');
+  if (!rop) { status.textContent='⚠ Enter a ROP number'; status.style.color='var(--warning)'; return; }
+
+  status.textContent='⟳ Searching...'; status.style.color='var(--muted)';
+
+  try {
+    const res  = await fetch(SCRIPT_URL + '?action=get_rop&rop=' + encodeURIComponent(rop));
+    const json = await res.json();
+    if (json.status==='ok' && json.data) {
+      currentROP     = rop;
+      currentROPData = json.data;
+      status.textContent = '✓ Found ' + json.data.length + ' record(s) for ' + rop;
+      status.style.color = 'var(--success)';
+      renderROPPanel(json.data, rop);
+    } else {
+      status.textContent = '✗ No records found for ROP: ' + rop;
+      status.style.color = 'var(--danger)';
+      document.getElementById('rop-po-panel').style.display = 'none';
+    }
+  } catch(e) {
+    status.textContent = '✗ Search failed — check connection';
+    status.style.color = 'var(--danger)';
+  }
+}
+
+function renderROPPanel(records, rop) {
+  const panel = document.getElementById('rop-po-panel');
+  panel.style.display = 'block';
+
+  // ROP info
+  const first = records[0];
+  document.getElementById('rop-info').innerHTML =
+    `<strong>ROP #:</strong> ${rop} &nbsp;|&nbsp; <strong>Item:</strong> ${first.item||'—'} &nbsp;|&nbsp; <strong>CTR:</strong> ${first.ctr||'—'} &nbsp;|&nbsp; <strong>Received:</strong> ${first.recDate||'—'}`;
+
+  // Existing POs
+  const poList = document.getElementById('existing-po-list');
+  const pos    = records.filter(r => r.pono);
+  if (!pos.length) {
+    poList.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:6px 0;">No PO numbers linked yet</div>';
+  } else {
+    poList.innerHTML = pos.map((r,i) => `
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:center;padding:6px 8px;background:${i%2===0?'var(--surface2)':'#fff'};border-radius:4px;margin-bottom:4px;">
+        <div style="font-family:var(--mono);font-size:12px;font-weight:600;">${r.pono}</div>
+        <div style="font-family:var(--mono);font-size:12px;">${r.poAmt?'IQD '+parseFloat(r.poAmt).toLocaleString():'<span style="color:var(--warning);">Amount pending</span>'}</div>
+        <div style="font-size:11px;color:var(--muted);">Row ${r.rowIndex}</div>
+        <button class="btn-sm" style="padding:3px 8px;font-size:11px;background:rgba(217,119,6,.1);border-color:var(--warning);color:var(--warning);"
+          onclick="editPOAmount(${r.rowIndex}, '${r.pono}')">Edit</button>
+      </div>`).join('');
+  }
+
+  // Clear add form
+  document.getElementById('new-po-number').value = '';
+  document.getElementById('new-po-amount').value = '';
+}
+
+async function addPOtoROP() {
+  const pono   = document.getElementById('new-po-number').value.trim();
+  const amount = parseFloat(document.getElementById('new-po-amount').value)||0;
   const status = document.getElementById('update-po-status');
-  if (!pono||!amount){status.textContent='⚠ Enter both PO # and PO amount';status.style.color='var(--warning)';return;}
-  status.textContent='⟳ Updating...';status.style.color='var(--muted)';
-  fireFF({action:'update_po', pono, amount:parseFloat(amount)});
-  setTimeout(()=>{
-    status.textContent=`✓ PO amount updated for ${pono}: IQD ${parseFloat(amount).toLocaleString()}`;
+  if (!currentROP)    { status.textContent='⚠ Search for a ROP first'; status.style.color='var(--warning)'; return; }
+  if (!pono)          { status.textContent='⚠ Enter a PO number'; status.style.color='var(--warning)'; return; }
+
+  status.textContent='⟳ Saving...'; status.style.color='var(--muted)';
+  fireFF({ action:'add_po_to_rop', rop:currentROP, pono, amount });
+
+  setTimeout(async () => {
+    status.textContent=`✓ PO ${pono} added to ROP ${currentROP}`;
     status.style.color='var(--success)';
-    document.getElementById('update-pono').value='';
-    document.getElementById('update-po-amount').value='';
-  },800);
+    // Refresh the panel
+    await searchByROP();
+  }, 800);
+}
+
+async function editPOAmount(rowIndex, pono) {
+  const newAmount = prompt(`Enter new PO amount for ${pono} (IQD):`, '');
+  if (newAmount===null||newAmount==='') return;
+  const status = document.getElementById('update-po-status');
+  status.textContent='⟳ Updating...'; status.style.color='var(--muted)';
+  fireFF({ action:'update_po_row', rowIndex, pono, amount:parseFloat(newAmount)||0 });
+  setTimeout(async () => {
+    status.textContent=`✓ ${pono} updated to IQD ${parseFloat(newAmount).toLocaleString()}`;
+    status.style.color='var(--success)';
+    await searchByROP();
+  }, 800);
 }
 
 // ── CREDIT NOTES ──────────────────────────────────────────────────────────────
@@ -943,8 +1073,83 @@ function fireFF(data) {
   }catch(e){console.error(e);}
 }
 
+// ── ACCESS CONTROL ───────────────────────────────────────────────────────────
+const GOOGLE_CLIENT_ID = '392743906594-f4huq0l2hf3b71tpn5hh4eba5ftt9ti0.apps.googleusercontent.com';
+const ALLOWED_EMAILS   = [
+  'mohammed.lateef@igccgroup-iq.com',
+  // Add more emails below:
+  // 'other.user@igccgroup-iq.com',
+];
+
+let currentUser = null;
+
+function initAuth() {
+  // Check session storage for existing login
+  const saved = sessionStorage.getItem('igcc_cost_user');
+  if (saved) {
+    try {
+      currentUser = JSON.parse(saved);
+      if (ALLOWED_EMAILS.includes(currentUser.email.toLowerCase())) {
+        showApp(currentUser);
+        return;
+      }
+    } catch(e) {}
+    sessionStorage.removeItem('igcc_cost_user');
+  }
+
+  // Initialize Google Sign-In
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: handleCredential,
+    auto_select: false,
+  });
+  google.accounts.id.renderButton(
+    document.getElementById('google-signin-btn'),
+    { theme:'outline', size:'large', width:320, text:'signin_with', shape:'rectangular' }
+  );
+  document.getElementById('auth-screen').style.display = 'flex';
+}
+
+function handleCredential(response) {
+  const payload = parseJwt(response.credential);
+  const email   = (payload.email||'').toLowerCase();
+  if (ALLOWED_EMAILS.includes(email)) {
+    currentUser = { name:payload.name, email:payload.email, picture:payload.picture };
+    sessionStorage.setItem('igcc_cost_user', JSON.stringify(currentUser));
+    showApp(currentUser);
+  } else {
+    document.getElementById('auth-error').classList.add('show');
+    google.accounts.id.disableAutoSelect();
+  }
+}
+
+function showApp(user) {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('btn-signout').classList.remove('hidden');
+  document.getElementById('inp-by').value = user.name || '';
+  loadMaster();
+}
+
+function signOut() {
+  sessionStorage.removeItem('igcc_cost_user');
+  currentUser = null;
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('btn-signout').classList.add('hidden');
+  google.accounts.id.disableAutoSelect();
+  location.reload();
+}
+
+function parseJwt(token) {
+  const base64 = token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+  return JSON.parse(atob(base64));
+}
+
 // ── BOOT ──────────────────────────────────────────────────────────────────────
-loadMaster();
+// Wait for Google GSI to load then init auth
+window.addEventListener('load', function() {
+  // Small delay to ensure GSI script loads
+  setTimeout(initAuth, 300);
+});
 </script>
 </body>
 </html>
