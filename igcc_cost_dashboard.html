@@ -107,8 +107,7 @@ input[type=date]:focus,select:focus{border-color:var(--blue);}
   </div>
   <div class="filter-group">
     <span class="filter-label">USD Rate</span>
-    <input type="date" id="usd-rate-display" style="width:120px;" disabled>
-    <span style="font-family:var(--mono);font-size:13px;color:var(--muted);" id="usd-label">1 USD = 1,310 IQD</span>
+    <span style="font-family:var(--mono);font-size:13px;color:var(--muted);" id="usd-label">1 USD = 1,520 IQD</span>
   </div>
   <button class="btn-refresh" onclick="loadDashboard()">↻ Refresh</button>
 </div>
@@ -225,7 +224,7 @@ input[type=date]:focus,select:focus{border-color:var(--blue);}
 </div>
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxcu0GJQKVtE2hVbYjixahHiAzcsie-Vmu8ELRIj5zSsIcZHlxhYAB-Zo-hgqIoyXHB/exec';
+const SCRIPT_URL = 'https://script.google.com/a/macros/igccgroup-iq.com/s/AKfycbxcu0GJQKVtE2hVbYjixahHiAzcsie-Vmu8ELRIj5zSsIcZHlxhYAB-Zo-hgqIoyXHB/exec';
 const DEPTS      = ['Civil','Mechanical','Electrical','HSE','QAQC','Planning'];
 const DEPT_COLORS= ['#0284c7','#16a34a','#f59e0b','#dc2626','#7c3aed','#0891b2'];
 
@@ -247,22 +246,54 @@ async function loadDashboard() {
   const to   = document.getElementById('date-to').value;
   const dept = document.getElementById('dept-filter').value;
 
+  let data = [];
+  let loaded = false;
+
+  // Try to fetch real data from script
   try {
-    const res  = await fetch(SCRIPT_URL + `?action=get_dashboard&from=${from}&to=${to}`);
-    const json = await res.json();
-    if (json.status==='ok') {
-      let data = json.data;
-      if (dept) data = data.filter(r=>r['Department']===dept);
-      renderDashboard(data);
+    const url = SCRIPT_URL + '?action=get_dashboard&from=' + from + '&to=' + to;
+    console.log('Fetching dashboard:', url);
+    const res  = await fetch(url);
+    const text = await res.text();
+    console.log('Dashboard response:', text.substring(0,200));
+    let json;
+    try { json = JSON.parse(text); }
+    catch(pe) { const m=text.match(/\{.*\}/s); if(m) json=JSON.parse(m[0]); }
+    if (json && json.status==='ok' && json.data) {
+      data   = json.data;
+      loaded = true;
+      console.log('Real data loaded:', data.length, 'rows');
     }
   } catch(e) {
-    console.error('Load error:', e);
-    renderDashboard(getDemoData());
+    console.log('Fetch failed:', e.message);
   }
+
+  // Update USD label from data
+  if (data.length > 0) {
+    const rates = data.map(r=>parseFloat(r['USD Rate'])||1520).filter(r=>r>0);
+    const avgRate = rates.length ? Math.round(rates.reduce((a,b)=>a+b,0)/rates.length) : 1520;
+    document.getElementById('usd-label').textContent = '1 USD = ' + avgRate.toLocaleString() + ' IQD';
+    window._usdRate = avgRate;
+  }
+
+  // Filter by department
+  if (dept && data.length) data = data.filter(r=>r['Department']===dept);
+
+  if (data.length === 0 && !loaded) {
+    // No real data — show demo with label
+    data = getDemoData();
+    document.getElementById('last-updated').textContent = 'Demo data (no submissions yet)';
+  } else if (data.length === 0 && loaded) {
+    document.getElementById('last-updated').textContent = 'No data for selected period';
+  }
+
+  renderDashboard(data);
 
   document.getElementById('loading').style.display='none';
   document.getElementById('dashboard-content').style.display='block';
-  document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-GB');
+  if (loaded && data.length > 0) {
+    document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-GB') + ' · ' + data.length + ' records';
+  }
 }
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
@@ -274,7 +305,7 @@ function renderDashboard(data) {
   const totalEQ  = sum(data,'Equipment Cost (IQD)');
   const totalBRD = sum(data,'Border Cost (IQD)');
   const totalAll = sum(data,'Total Cost (IQD)');
-  const avgUSD   = avg(data.map(r=>parseFloat(r['USD Rate'])||1310));
+  const avgUSD   = window._usdRate || avg(data.map(r=>parseFloat(r['USD Rate'])||1520));
   const uniqueDays = new Set(data.map(r=>r['Date'])).size;
 
   // KPIs
@@ -368,13 +399,16 @@ function renderDeptTable(data, usdRate) {
   const byDept = {};
   data.forEach(r => {
     const d = r['Department'];
-    if (!byDept[d]) byDept[d] = {days:new Set(),present:0,mp:0,eq:0,brd:0,total:0};
+    if (!byDept[d]) byDept[d] = {days:new Set(),present:0,mp:0,eq:0,brd:0,conc:0,sub:0,credit:0,total:0};
     byDept[d].days.add(r['Date']);
     byDept[d].present += parseFloat(r['Present'])||0;
-    byDept[d].mp    += parseFloat(r['Manpower Cost (IQD)'])||0;
-    byDept[d].eq    += parseFloat(r['Equipment Cost (IQD)'])||0;
-    byDept[d].brd   += parseFloat(r['Border Cost (IQD)'])||0;
-    byDept[d].total += parseFloat(r['Total Cost (IQD)'])||0;
+    byDept[d].mp     += parseFloat(r['Manpower Cost (IQD)'])||0;
+    byDept[d].eq     += parseFloat(r['Equipment Cost (IQD)'])||0;
+    byDept[d].brd    += parseFloat(r['Border Cost (IQD)'])||0;
+    byDept[d].conc   += parseFloat(r['Concrete Cost (IQD)'])||0;
+    byDept[d].sub    += parseFloat(r['Sub Base Cost (IQD)'])||0;
+    byDept[d].credit += parseFloat(r['Credit Notes (IQD)'])||0;
+    byDept[d].total  += parseFloat(r['Total Cost (IQD)'])||0;
   });
   document.getElementById('dept-tbody').innerHTML = Object.entries(byDept)
     .sort((a,b)=>b[1].total-a[1].total)
