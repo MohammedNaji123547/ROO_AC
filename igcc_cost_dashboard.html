@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IGCC — Cost Control Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#f0f4f8;--surface:#fff;--surface2:#f8fafc;--border:#dde3ed;
+  --accent:#0f172a;--blue:#0284c7;--success:#16a34a;--danger:#dc2626;--warning:#d97706;
+  --purple:#7c3aed;--text:#0f172a;--muted:#64748b;
+  --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;
+  --shadow:0 1px 3px rgba(0,0,0,.08);--shadow-md:0 4px 12px rgba(0,0,0,.1);
+}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;min-height:100vh;}
+.header{background:var(--accent);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;}
+.header-left{display:flex;align-items:center;gap:12px;}
+.logo{font-family:var(--mono);font-size:13px;font-weight:700;color:#fff;background:rgba(255,255,255,.15);padding:5px 10px;border-radius:6px;}
+.header-title{font-size:14px;font-weight:600;color:#fff;}
+.header-sub{font-size:11px;color:rgba(255,255,255,.6);}
+.last-updated{font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.5);}
+
+/* FILTER BAR */
+.filter-bar{background:#fff;border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:var(--shadow);}
+.filter-group{display:flex;align-items:center;gap:8px;}
+.filter-label{font-size:11px;font-weight:600;color:var(--label);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;}
+input[type=date],select{background:#fff;border:1.5px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--sans);font-size:13px;padding:7px 10px;outline:none;}
+input[type=date]:focus,select:focus{border-color:var(--blue);}
+.btn-refresh{background:var(--accent);border:none;border-radius:8px;color:#fff;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:600;padding:8px 18px;transition:opacity .15s;}
+.btn-refresh:hover{opacity:.85;}
+
+/* CONTAINER */
+.container{max-width:1400px;margin:0 auto;padding:24px 20px;}
+
+/* KPI CARDS */
+.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px;}
+.kpi-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px 20px;box-shadow:var(--shadow);position:relative;overflow:hidden;}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--card-color,var(--blue));}
+.kpi-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;}
+.kpi-value{font-family:var(--mono);font-size:22px;font-weight:700;color:var(--text);line-height:1;}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:4px;font-family:var(--mono);}
+.kpi-icon{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:28px;opacity:.15;}
+
+/* CHARTS */
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+.chart-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px;box-shadow:var(--shadow);}
+.chart-card.full{grid-column:span 2;}
+.chart-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.chart-sub{font-size:11px;color:var(--muted);margin-bottom:16px;}
+.chart-wrap{position:relative;height:260px;}
+
+/* DEPT TABLE */
+.table-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px;box-shadow:var(--shadow);margin-bottom:16px;}
+.table-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:14px;}
+.data-table{width:100%;border-collapse:collapse;}
+.data-table th{font-size:11px;font-weight:600;color:var(--label);text-transform:uppercase;letter-spacing:.05em;padding:8px 12px;border-bottom:2px solid var(--border);text-align:left;background:var(--surface2);}
+.data-table td{padding:10px 12px;border-bottom:1px solid var(--border);font-size:13px;}
+.data-table tr:last-child td{border-bottom:none;}
+.data-table tr:hover td{background:rgba(2,132,199,.03);}
+.mono{font-family:var(--mono);}
+.pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;font-family:var(--mono);}
+.pill-blue{background:var(--blue-dim);color:var(--blue);}
+.pill-green{background:rgba(22,163,74,.1);color:var(--success);}
+.pill-orange{background:rgba(217,119,6,.1);color:var(--warning);}
+
+/* LOADING */
+.loading{text-align:center;padding:60px 20px;color:var(--muted);}
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+@media(max-width:900px){.kpi-grid{grid-template-columns:repeat(3,1fr);}.chart-grid{grid-template-columns:1fr;}.chart-card.full{grid-column:span 1;}}
+@media(max-width:600px){.kpi-grid{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <span class="logo">IGCC</span>
+    <div>
+      <div class="header-title">Cost Control Dashboard</div>
+      <div class="header-sub">Daily manpower, equipment & border costs</div>
+    </div>
+  </div>
+  <div class="last-updated" id="last-updated">—</div>
+</div>
+
+<div class="filter-bar">
+  <div class="filter-group">
+    <span class="filter-label">From</span>
+    <input type="date" id="date-from">
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">To</span>
+    <input type="date" id="date-to">
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">Department</span>
+    <select id="dept-filter">
+      <option value="">All departments</option>
+      <option>Civil</option><option>Mechanical</option><option>Electrical</option>
+      <option>HSE</option><option>QAQC</option><option>Planning</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">USD Rate</span>
+    <input type="date" id="usd-rate-display" style="width:120px;" disabled>
+    <span style="font-family:var(--mono);font-size:13px;color:var(--muted);" id="usd-label">1 USD = 1,310 IQD</span>
+  </div>
+  <button class="btn-refresh" onclick="loadDashboard()">↻ Refresh</button>
+</div>
+
+<div class="container">
+  <div id="loading" class="loading"><div class="spinner"></div>Loading dashboard data...</div>
+  <div id="dashboard-content" style="display:none;">
+
+    <!-- KPI CARDS -->
+    <div class="kpi-grid">
+      <div class="kpi-card" style="--card-color:var(--blue);">
+        <div class="kpi-label">Total Cost (IQD)</div>
+        <div class="kpi-value" id="kpi-total-iqd">—</div>
+        <div class="kpi-sub" id="kpi-total-usd">—</div>
+        <div class="kpi-icon">💰</div>
+      </div>
+      <div class="kpi-card" style="--card-color:var(--success);">
+        <div class="kpi-label">Manpower Cost</div>
+        <div class="kpi-value" id="kpi-mp">—</div>
+        <div class="kpi-sub" id="kpi-mp-pct">— of total</div>
+        <div class="kpi-icon">👷</div>
+      </div>
+      <div class="kpi-card" style="--card-color:var(--warning);">
+        <div class="kpi-label">Equipment Cost</div>
+        <div class="kpi-value" id="kpi-eq">—</div>
+        <div class="kpi-sub" id="kpi-eq-pct">— of total</div>
+        <div class="kpi-icon">🚜</div>
+      </div>
+      <div class="kpi-card" style="--card-color:var(--purple);">
+        <div class="kpi-label">Border Cost</div>
+        <div class="kpi-value" id="kpi-brd">—</div>
+        <div class="kpi-sub" id="kpi-brd-pct">— of total</div>
+        <div class="kpi-icon">🏗</div>
+      </div>
+      <div class="kpi-card" style="--card-color:var(--danger);">
+        <div class="kpi-label">Avg Daily Cost</div>
+        <div class="kpi-value" id="kpi-avg">—</div>
+        <div class="kpi-sub" id="kpi-days">— days recorded</div>
+        <div class="kpi-icon">📅</div>
+      </div>
+    </div>
+
+    <!-- CHARTS ROW 1 -->
+    <div class="chart-grid">
+      <div class="chart-card full">
+        <div class="chart-title">Daily Cost Trend</div>
+        <div class="chart-sub">Total cost per day broken down by category</div>
+        <div class="chart-wrap"><canvas id="chart-daily"></canvas></div>
+      </div>
+    </div>
+
+    <!-- CHARTS ROW 2 -->
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-title">Cost by Department</div>
+        <div class="chart-sub">Total cost breakdown per department</div>
+        <div class="chart-wrap"><canvas id="chart-dept"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Cost Composition</div>
+        <div class="chart-sub">Manpower vs Equipment vs Border</div>
+        <div class="chart-wrap"><canvas id="chart-pie"></canvas></div>
+      </div>
+    </div>
+
+    <!-- DEPT SUMMARY TABLE -->
+    <div class="table-card">
+      <div class="table-title">Department Summary</div>
+      <div style="overflow-x:auto;">
+        <table class="data-table" id="dept-table">
+          <thead>
+            <tr>
+              <th>Department</th>
+              <th>Days Submitted</th>
+              <th>Avg Present</th>
+              <th>Manpower Cost (IQD)</th>
+              <th>Equipment Cost (IQD)</th>
+              <th>Border Cost (IQD)</th>
+              <th>Total (IQD)</th>
+              <th>Total (USD)</th>
+            </tr>
+          </thead>
+          <tbody id="dept-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- DAILY LOG TABLE -->
+    <div class="table-card">
+      <div class="table-title">Daily Submission Log</div>
+      <div style="overflow-x:auto;">
+        <table class="data-table" id="daily-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Department</th>
+              <th>Present</th>
+              <th>Absent</th>
+              <th>Leave</th>
+              <th>Manpower (IQD)</th>
+              <th>Equipment (IQD)</th>
+              <th>Border (IQD)</th>
+              <th>Total (IQD)</th>
+              <th>Total (USD)</th>
+              <th>Submitted By</th>
+            </tr>
+          </thead>
+          <tbody id="daily-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const SCRIPT_URL = 'YOUR_COST_SCRIPT_URL';
+const DEPTS      = ['Civil','Mechanical','Electrical','HSE','QAQC','Planning'];
+const DEPT_COLORS= ['#0284c7','#16a34a','#f59e0b','#dc2626','#7c3aed','#0891b2'];
+
+let charts = {};
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+const today = new Date();
+const pad   = n => String(n).padStart(2,'0');
+const d30   = new Date(today); d30.setDate(d30.getDate()-29);
+document.getElementById('date-from').value = `${d30.getFullYear()}-${pad(d30.getMonth()+1)}-${pad(d30.getDate())}`;
+document.getElementById('date-to').value   = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
+
+// ── LOAD ──────────────────────────────────────────────────────────────────────
+async function loadDashboard() {
+  document.getElementById('loading').style.display='block';
+  document.getElementById('dashboard-content').style.display='none';
+
+  const from = document.getElementById('date-from').value;
+  const to   = document.getElementById('date-to').value;
+  const dept = document.getElementById('dept-filter').value;
+
+  try {
+    const res  = await fetch(SCRIPT_URL + `?action=get_dashboard&from=${from}&to=${to}`);
+    const json = await res.json();
+    if (json.status==='ok') {
+      let data = json.data;
+      if (dept) data = data.filter(r=>r['Department']===dept);
+      renderDashboard(data);
+    }
+  } catch(e) {
+    console.error('Load error:', e);
+    renderDashboard(getDemoData());
+  }
+
+  document.getElementById('loading').style.display='none';
+  document.getElementById('dashboard-content').style.display='block';
+  document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-GB');
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function renderDashboard(data) {
+  if (!data.length) { renderEmpty(); return; }
+
+  // Totals
+  const totalMP  = sum(data,'Manpower Cost (IQD)');
+  const totalEQ  = sum(data,'Equipment Cost (IQD)');
+  const totalBRD = sum(data,'Border Cost (IQD)');
+  const totalAll = sum(data,'Total Cost (IQD)');
+  const avgUSD   = avg(data.map(r=>parseFloat(r['USD Rate'])||1310));
+  const uniqueDays = new Set(data.map(r=>r['Date'])).size;
+
+  // KPIs
+  document.getElementById('kpi-total-iqd').textContent = fmtIQD(totalAll);
+  document.getElementById('kpi-total-usd').textContent = '$ ' + fmtN(totalAll/avgUSD);
+  document.getElementById('kpi-mp').textContent  = fmtIQD(totalMP);
+  document.getElementById('kpi-mp-pct').textContent = pct(totalMP,totalAll) + ' of total';
+  document.getElementById('kpi-eq').textContent  = fmtIQD(totalEQ);
+  document.getElementById('kpi-eq-pct').textContent = pct(totalEQ,totalAll) + ' of total';
+  document.getElementById('kpi-brd').textContent = fmtIQD(totalBRD);
+  document.getElementById('kpi-brd-pct').textContent = pct(totalBRD,totalAll) + ' of total';
+  document.getElementById('kpi-avg').textContent = uniqueDays>0?fmtIQD(totalAll/uniqueDays):'—';
+  document.getElementById('kpi-days').textContent = uniqueDays + ' days recorded';
+
+  // Daily trend chart
+  renderDailyChart(data);
+
+  // Dept breakdown
+  renderDeptChart(data);
+
+  // Pie chart
+  renderPieChart(totalMP, totalEQ, totalBRD);
+
+  // Tables
+  renderDeptTable(data, avgUSD);
+  renderDailyLog(data, avgUSD);
+}
+
+function renderDailyChart(data) {
+  // Group by date
+  const byDate = {};
+  data.forEach(r => {
+    const d = r['Date'];
+    if (!byDate[d]) byDate[d] = {mp:0,eq:0,brd:0};
+    byDate[d].mp  += parseFloat(r['Manpower Cost (IQD)'])||0;
+    byDate[d].eq  += parseFloat(r['Equipment Cost (IQD)'])||0;
+    byDate[d].brd += parseFloat(r['Border Cost (IQD)'])||0;
+  });
+  const labels = Object.keys(byDate).sort();
+  const mpData  = labels.map(d=>Math.round(byDate[d].mp/1e6*100)/100);
+  const eqData  = labels.map(d=>Math.round(byDate[d].eq/1e6*100)/100);
+  const brdData = labels.map(d=>Math.round(byDate[d].brd/1e6*100)/100);
+
+  destroyChart('chart-daily');
+  charts['chart-daily'] = new Chart(document.getElementById('chart-daily'), {
+    type:'bar',
+    data:{
+      labels,
+      datasets:[
+        {label:'Manpower (M IQD)',data:mpData,backgroundColor:'#0284c7',stack:'s'},
+        {label:'Equipment (M IQD)',data:eqData,backgroundColor:'#f59e0b',stack:'s'},
+        {label:'Border (M IQD)',data:brdData,backgroundColor:'#7c3aed',stack:'s'},
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}},scales:{x:{stacked:true},y:{stacked:true,ticks:{callback:v=>v+'M'}}}}
+  });
+}
+
+function renderDeptChart(data) {
+  const byDept = {};
+  data.forEach(r => {
+    const d = r['Department'];
+    if (!byDept[d]) byDept[d] = 0;
+    byDept[d] += parseFloat(r['Total Cost (IQD)'])||0;
+  });
+  const labels = Object.keys(byDept);
+  const vals   = labels.map(d=>Math.round(byDept[d]/1e6*100)/100);
+  const colors = labels.map(d=>DEPT_COLORS[DEPTS.indexOf(d)]||'#64748b');
+
+  destroyChart('chart-dept');
+  charts['chart-dept'] = new Chart(document.getElementById('chart-dept'), {
+    type:'bar',
+    data:{labels,datasets:[{label:'Total Cost (M IQD)',data:vals,backgroundColor:colors,borderRadius:6}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v+'M'}}}}
+  });
+}
+
+function renderPieChart(mp,eq,brd) {
+  destroyChart('chart-pie');
+  charts['chart-pie'] = new Chart(document.getElementById('chart-pie'), {
+    type:'doughnut',
+    data:{
+      labels:['Manpower','Equipment','Border'],
+      datasets:[{data:[Math.round(mp/1e3),Math.round(eq/1e3),Math.round(brd/1e3)],backgroundColor:['#0284c7','#f59e0b','#7c3aed'],borderWidth:2,borderColor:'#fff'}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${fmtN(ctx.raw)}K IQD`}}}}
+  });
+}
+
+function renderDeptTable(data, usdRate) {
+  const byDept = {};
+  data.forEach(r => {
+    const d = r['Department'];
+    if (!byDept[d]) byDept[d] = {days:new Set(),present:0,mp:0,eq:0,brd:0,total:0};
+    byDept[d].days.add(r['Date']);
+    byDept[d].present += parseFloat(r['Present'])||0;
+    byDept[d].mp    += parseFloat(r['Manpower Cost (IQD)'])||0;
+    byDept[d].eq    += parseFloat(r['Equipment Cost (IQD)'])||0;
+    byDept[d].brd   += parseFloat(r['Border Cost (IQD)'])||0;
+    byDept[d].total += parseFloat(r['Total Cost (IQD)'])||0;
+  });
+  document.getElementById('dept-tbody').innerHTML = Object.entries(byDept)
+    .sort((a,b)=>b[1].total-a[1].total)
+    .map(([dept,v])=>`<tr>
+      <td><span class="pill pill-blue">${dept}</span></td>
+      <td class="mono">${v.days.size}</td>
+      <td class="mono">${v.days.size>0?Math.round(v.present/v.days.size):0}</td>
+      <td class="mono">${fmtIQD(v.mp)}</td>
+      <td class="mono">${fmtIQD(v.eq)}</td>
+      <td class="mono">${fmtIQD(v.brd)}</td>
+      <td class="mono" style="font-weight:700;">${fmtIQD(v.total)}</td>
+      <td class="mono">$ ${fmtN(v.total/usdRate)}</td>
+    </tr>`).join('');
+}
+
+function renderDailyLog(data, usdRate) {
+  const sorted = [...data].sort((a,b)=>b['Date'].localeCompare(a['Date']));
+  document.getElementById('daily-tbody').innerHTML = sorted.slice(0,100).map(r=>`<tr>
+    <td class="mono">${r['Date']}</td>
+    <td><span class="pill pill-blue">${r['Department']}</span></td>
+    <td class="mono" style="color:var(--success);">${r['Present']}</td>
+    <td class="mono" style="color:var(--danger);">${r['Absent']}</td>
+    <td class="mono" style="color:var(--warning);">${r['Leave']}</td>
+    <td class="mono">${fmtIQD(parseFloat(r['Manpower Cost (IQD)'])||0)}</td>
+    <td class="mono">${fmtIQD(parseFloat(r['Equipment Cost (IQD)'])||0)}</td>
+    <td class="mono">${fmtIQD(parseFloat(r['Border Cost (IQD)'])||0)}</td>
+    <td class="mono" style="font-weight:700;">${fmtIQD(parseFloat(r['Total Cost (IQD)'])||0)}</td>
+    <td class="mono">$ ${fmtN((parseFloat(r['Total Cost (IQD)'])||0)/usdRate)}</td>
+    <td style="color:var(--muted);font-size:12px;">${r['Submitted By']||'—'}</td>
+  </tr>`).join('');
+}
+
+function renderEmpty() {
+  document.getElementById('dept-tbody').innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--muted);">No data for selected period</td></tr>';
+  document.getElementById('daily-tbody').innerHTML = '<tr><td colspan="11" style="text-align:center;padding:20px;color:var(--muted);">No submissions yet</td></tr>';
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function sum(data, col) { return data.reduce((s,r)=>s+(parseFloat(r[col])||0),0); }
+function avg(arr)       { return arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:1310; }
+function fmtIQD(n)      { return 'IQD ' + Math.round(n).toLocaleString(); }
+function fmtN(n)        { return Math.round(n).toLocaleString(); }
+function pct(n,total)   { return total?Math.round(n/total*100)+'%':'0%'; }
+function destroyChart(id){ if(charts[id]){charts[id].destroy();delete charts[id];} }
+
+// ── DEMO DATA (when script not connected) ────────────────────────────────────
+function getDemoData() {
+  const depts = ['Civil','Mechanical','Electrical','HSE','QAQC','Planning'];
+  const rows  = [];
+  for (let i=29;i>=0;i--) {
+    const d    = new Date(); d.setDate(d.getDate()-i);
+    const date = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    depts.forEach(dept => {
+      if (Math.random()>0.2) {
+        const mp  = Math.round((Math.random()*5+3)*1e6);
+        const eq  = Math.round((Math.random()*2+0.5)*1e6);
+        const brd = Math.round((Math.random()*1+0.3)*1e6);
+        rows.push({'Date':date,'Department':dept,'Present':Math.round(Math.random()*8+5),'Absent':Math.round(Math.random()*2),'Leave':Math.round(Math.random()*2),'Off':'0','Manpower Cost (IQD)':mp,'Equipment Cost (IQD)':eq,'Border Cost (IQD)':brd,'Total Cost (IQD)':mp+eq+brd,'Total Cost (USD)':Math.round((mp+eq+brd)/1310),'USD Rate':'1310','Submitted By':'Demo'});
+      }
+    });
+  }
+  return rows;
+}
+
+// ── BOOT ──────────────────────────────────────────────────────────────────────
+loadDashboard();
+</script>
+</body>
+</html>

@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IGCC — Daily Cost Input</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#f0f4f8;--surface:#fff;--surface2:#f8fafc;--border:#dde3ed;
+  --accent:#0f172a;--blue:#0284c7;--blue-dim:rgba(2,132,199,.08);
+  --success:#16a34a;--danger:#dc2626;--warning:#d97706;
+  --text:#0f172a;--muted:#64748b;--label:#475569;
+  --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;
+  --shadow:0 1px 3px rgba(0,0,0,.08);--shadow-md:0 4px 12px rgba(0,0,0,.1);
+}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;min-height:100vh;}
+.header{background:var(--accent);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-md);}
+.header-left{display:flex;align-items:center;gap:12px;}
+.logo{font-family:var(--mono);font-size:13px;font-weight:700;color:#fff;background:rgba(255,255,255,.15);padding:5px 10px;border-radius:6px;}
+.header-title{font-size:13px;font-weight:500;color:rgba(255,255,255,.7);}
+.date-badge{font-family:var(--mono);font-size:12px;color:rgba(255,255,255,.9);background:rgba(255,255,255,.1);padding:5px 12px;border-radius:6px;}
+
+/* DEPT SELECTOR */
+.dept-selector{background:#fff;border-bottom:1px solid var(--border);padding:16px 24px;box-shadow:var(--shadow);}
+.dept-label{font-size:11px;font-weight:600;color:var(--label);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;}
+.dept-tabs{display:flex;gap:8px;flex-wrap:wrap;}
+.dept-tab{padding:8px 16px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .2s;background:#fff;}
+.dept-tab:hover{border-color:var(--blue);color:var(--blue);}
+.dept-tab.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+
+/* CONTAINER */
+.container{max-width:1000px;margin:0 auto;padding:24px 20px 60px;}
+.section{background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:16px;box-shadow:var(--shadow);}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid var(--bg);}
+.section-title{font-size:13px;font-weight:600;color:var(--text);text-transform:uppercase;letter-spacing:.07em;display:flex;align-items:center;gap:8px;}
+.section-icon{font-size:16px;}
+.count-badge{font-family:var(--mono);font-size:11px;background:var(--blue-dim);color:var(--blue);padding:2px 8px;border-radius:10px;border:1px solid rgba(2,132,199,.2);}
+.cost-badge{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--success);}
+
+/* EMPLOYEE TABLE */
+.emp-table{width:100%;border-collapse:collapse;}
+.emp-table th{font-size:11px;font-weight:600;color:var(--label);text-transform:uppercase;letter-spacing:.05em;padding:8px 10px;border-bottom:2px solid var(--border);text-align:left;background:var(--surface2);}
+.emp-table td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.emp-table tr:last-child td{border-bottom:none;}
+.emp-table tr:hover td{background:rgba(2,132,199,.03);}
+.emp-name{font-weight:500;color:var(--text);}
+.emp-id{font-family:var(--mono);font-size:11px;color:var(--muted);}
+.emp-role{font-size:12px;color:var(--muted);}
+.emp-rate{font-family:var(--mono);font-size:12px;color:var(--accent);}
+.status-btns{display:flex;gap:6px;}
+.s-btn{padding:5px 12px;border-radius:6px;border:1.5px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;font-family:var(--sans);background:#fff;color:var(--muted);}
+.s-btn:hover{border-color:var(--blue);}
+.s-btn.present{background:rgba(22,163,74,.1);border-color:var(--success);color:var(--success);}
+.s-btn.absent{background:rgba(220,38,38,.1);border-color:var(--danger);color:var(--danger);}
+.s-btn.leave{background:rgba(217,119,6,.1);border-color:var(--warning);color:var(--warning);}
+.s-btn.off{background:rgba(100,116,139,.1);border-color:var(--muted);color:var(--muted);}
+.emp-cost{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--text);min-width:80px;text-align:right;}
+
+/* EQUIPMENT TABLE */
+.eq-row{display:grid;grid-template-columns:2fr 2fr 1fr 1fr 1fr auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);}
+.eq-row:last-child{border-bottom:none;}
+.eq-row.header{font-size:11px;font-weight:600;color:var(--label);text-transform:uppercase;letter-spacing:.05em;padding-bottom:8px;}
+select,input[type=number],input[type=text]{background:#fff;border:1.5px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--sans);font-size:13px;padding:7px 10px;outline:none;width:100%;transition:border-color .15s;}
+select:focus,input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(2,132,199,.1);}
+.btn-add-row{background:var(--blue-dim);border:1.5px dashed rgba(2,132,199,.4);border-radius:8px;color:var(--blue);cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:500;padding:10px;width:100%;transition:all .2s;margin-top:10px;}
+.btn-add-row:hover{background:rgba(2,132,199,.12);}
+.btn-remove{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:4px;transition:color .15s;}
+.btn-remove:hover{color:var(--danger);}
+
+/* BORDER SECTION */
+.border-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.border-card{background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:16px;}
+.border-card-title{font-size:12px;font-weight:600;color:var(--label);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px;}
+.count-input-wrap{display:flex;align-items:center;gap:12px;}
+.count-display{font-family:var(--mono);font-size:24px;font-weight:700;color:var(--accent);min-width:48px;}
+.count-controls{display:flex;flex-direction:column;gap:4px;}
+.count-btn{background:#fff;border:1.5px solid var(--border);border-radius:6px;color:var(--text);cursor:pointer;font-size:16px;font-weight:700;width:32px;height:28px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.count-btn:hover{border-color:var(--blue);color:var(--blue);}
+.border-rate{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:6px;}
+.border-total{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--success);margin-top:8px;}
+
+/* SUMMARY BAR */
+.summary-bar{background:var(--accent);border-radius:12px;padding:18px 24px;margin-bottom:16px;display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+.sum-item{text-align:center;}
+.sum-label{font-size:10px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;}
+.sum-value{font-family:var(--mono);font-size:18px;font-weight:700;color:#fff;}
+.sum-sub{font-size:10px;color:rgba(255,255,255,.5);margin-top:2px;}
+
+/* NOTES */
+.notes-area{width:100%;min-height:60px;resize:vertical;}
+.field-label{font-size:11px;font-weight:600;color:var(--label);letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px;display:block;}
+
+/* SUBMIT */
+.btn-submit{background:var(--success);border:none;border-radius:12px;color:#fff;cursor:pointer;font-family:var(--sans);font-size:15px;font-weight:700;padding:16px;width:100%;transition:all .2s;box-shadow:0 2px 8px rgba(22,163,74,.3);}
+.btn-submit:hover{background:#15803d;}
+.btn-submit:disabled{opacity:.4;cursor:not-allowed;box-shadow:none;}
+
+/* SUCCESS */
+.success-banner{background:rgba(22,163,74,.1);border:1.5px solid var(--success);border-radius:10px;padding:16px 20px;display:none;align-items:center;gap:12px;margin-bottom:16px;}
+.success-banner.show{display:flex;}
+
+.hidden{display:none!important;}
+@media(max-width:640px){.summary-bar{grid-template-columns:1fr 1fr;}.border-grid{grid-template-columns:1fr;}.eq-row{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <span class="logo">IGCC</span>
+    <span class="header-title">Daily Cost Input — إدخال التكاليف اليومية</span>
+  </div>
+  <span class="date-badge" id="date-badge">—</span>
+</div>
+
+<!-- DEPT SELECTOR -->
+<div class="dept-selector">
+  <div class="dept-label">Select your department</div>
+  <div class="dept-tabs" id="dept-tabs">
+    <div class="dept-tab active" onclick="selectDept('Civil')">⚒ Civil</div>
+    <div class="dept-tab" onclick="selectDept('Mechanical')">⚙ Mechanical</div>
+    <div class="dept-tab" onclick="selectDept('Electrical')">⚡ Electrical</div>
+    <div class="dept-tab" onclick="selectDept('HSE')">🦺 HSE</div>
+    <div class="dept-tab" onclick="selectDept('QAQC')">🔍 QA-QC</div>
+    <div class="dept-tab" onclick="selectDept('Planning')">📋 Planning</div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="success-banner" id="success-banner">
+    <span style="font-size:24px;">✅</span>
+    <div>
+      <div style="font-weight:600;color:var(--success);">Daily report submitted successfully</div>
+      <div style="font-size:12px;color:var(--muted);" id="success-detail"></div>
+    </div>
+  </div>
+
+  <!-- SUMMARY BAR -->
+  <div class="summary-bar">
+    <div class="sum-item"><div class="sum-label">Department</div><div class="sum-value" id="sum-dept">Civil</div></div>
+    <div class="sum-item"><div class="sum-label">Manpower Cost</div><div class="sum-value" id="sum-mp">IQD 0</div><div class="sum-sub" id="sum-mp-usd">$ 0</div></div>
+    <div class="sum-item"><div class="sum-label">Equipment Cost</div><div class="sum-value" id="sum-eq">IQD 0</div><div class="sum-sub" id="sum-eq-usd">$ 0</div></div>
+    <div class="sum-item"><div class="sum-label">Total Daily Cost</div><div class="sum-value" id="sum-total">IQD 0</div><div class="sum-sub" id="sum-total-usd">$ 0</div></div>
+  </div>
+
+  <!-- DATE + SUBMITTER -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title"><span class="section-icon">📅</span>Submission Details</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
+      <div>
+        <label class="field-label">Date <span style="color:var(--danger);">*</span></label>
+        <input type="date" id="input-date" onchange="updateHeader()">
+      </div>
+      <div>
+        <label class="field-label">Submitted by</label>
+        <input type="text" id="input-by" placeholder="Your name">
+      </div>
+      <div>
+        <label class="field-label">USD Rate (1 USD = ? IQD)</label>
+        <input type="number" id="usd-rate" value="1310" min="1" step="1" onchange="recalcAll()">
+      </div>
+    </div>
+  </div>
+
+  <!-- MANPOWER SECTION -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title"><span class="section-icon">👷</span>Manpower Attendance</div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span class="count-badge" id="present-count">0 present</span>
+        <span class="cost-badge" id="mp-cost-display">IQD 0</span>
+      </div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="emp-table" id="emp-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Employee ID</th>
+            <th>Name</th>
+            <th>Position</th>
+            <th>Daily Rate</th>
+            <th style="min-width:220px;">Status</th>
+            <th style="text-align:right;">Cost</th>
+          </tr>
+        </thead>
+        <tbody id="emp-tbody">
+          <tr><td colspan="7" style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">Select a department to load employees</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- EQUIPMENT SECTION -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title"><span class="section-icon">🚜</span>Equipment Used Today</div>
+      <span class="cost-badge" id="eq-cost-display">IQD 0</span>
+    </div>
+    <div class="eq-row header">
+      <div>Equipment Type</div><div>Description / Plate No.</div><div>Qty / Hours</div><div>Unit</div><div>Unit Rate (IQD)</div><div></div>
+    </div>
+    <div id="eq-rows"></div>
+    <button class="btn-add-row" onclick="addEqRow()">+ Add equipment</button>
+  </div>
+
+  <!-- BORDER WORKERS -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title"><span class="section-icon">🏗</span>Border Workers</div>
+      <span class="cost-badge" id="border-cost-display">IQD 0</span>
+    </div>
+    <div class="border-grid">
+      <div class="border-card">
+        <div class="border-card-title">PA (Personal Assistant)</div>
+        <div class="count-input-wrap">
+          <div class="count-display" id="pa-count">0</div>
+          <div class="count-controls">
+            <button class="count-btn" onclick="changeCount('pa',1)">+</button>
+            <button class="count-btn" onclick="changeCount('pa',-1)">−</button>
+          </div>
+          <input type="number" id="pa-count-input" value="0" min="0" style="width:80px;" onchange="paCount=parseInt(this.value)||0;document.getElementById('pa-count').textContent=paCount;calcBorder()">
+        </div>
+        <div class="border-rate">Rate: <span id="pa-rate-display">IQD 0</span> / day</div>
+        <div class="border-total" id="pa-total">IQD 0</div>
+      </div>
+      <div class="border-card">
+        <div class="border-card-title">Worker (عامل)</div>
+        <div class="count-input-wrap">
+          <div class="count-display" id="worker-count">0</div>
+          <div class="count-controls">
+            <button class="count-btn" onclick="changeCount('worker',1)">+</button>
+            <button class="count-btn" onclick="changeCount('worker',-1)">−</button>
+          </div>
+          <input type="number" id="worker-count-input" value="0" min="0" style="width:80px;" onchange="workerCount=parseInt(this.value)||0;document.getElementById('worker-count').textContent=workerCount;calcBorder()">
+        </div>
+        <div class="border-rate">Rate: <span id="worker-rate-display">IQD 0</span> / day</div>
+        <div class="border-total" id="worker-total">IQD 0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOTES -->
+  <div class="section">
+    <div class="section-header"><div class="section-title"><span class="section-icon">📝</span>Notes</div></div>
+    <textarea class="notes-area" id="notes" placeholder="Any additional notes, issues, or comments for today..."></textarea>
+  </div>
+
+  <button class="btn-submit" id="btn-submit" onclick="submitDaily()">✓ Submit Daily Report</button>
+</div>
+
+<script>
+const SCRIPT_URL = 'YOUR_COST_SCRIPT_URL';
+
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+let currentDept = 'Civil';
+let employees   = {};  // { dept: [{id,name,position,dailyRate,currency},...] }
+let equipment   = [];  // [{type,description,unitRate,unit}]
+let borderRates = { pa:35000, worker:30000 };
+let paCount     = 0;
+let workerCount = 0;
+let empStatus   = {};  // { empId: 'present'|'absent'|'leave'|'off' }
+
+const today  = new Date();
+const pad    = n => String(n).padStart(2,'0');
+const dateStr= `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
+
+document.getElementById('input-date').value = dateStr;
+document.getElementById('date-badge').textContent = today.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+
+// ── LOAD MASTER DATA ──────────────────────────────────────────────────────────
+async function loadMasterData() {
+  try {
+    const res  = await fetch(SCRIPT_URL + '?action=get_master');
+    const json = await res.json();
+    if (json.employees) {
+      employees = {};
+      json.employees.forEach(e => {
+        if (!employees[e.dept]) employees[e.dept] = [];
+        employees[e.dept].push(e);
+      });
+    }
+    if (json.equipment)    equipment    = json.equipment;
+    if (json.borderRates)  borderRates  = json.borderRates;
+
+    document.getElementById('pa-rate-display').textContent     = fmt(borderRates.pa);
+    document.getElementById('worker-rate-display').textContent = fmt(borderRates.worker);
+
+    renderDept(currentDept);
+  } catch(e) {
+    console.error('loadMasterData error:', e);
+    // Use demo data if script not connected
+    useDemoData();
+  }
+}
+
+function useDemoData() {
+  employees = {
+    Civil: [
+      {id:'IG0420',name:'علي صبار حسين',position:'Civil Technician',dailyRate:1833,currency:'USD'},
+      {id:'IG0891',name:'كاظم علي نعمة',position:'PA',dailyRate:35000,currency:'IQD'},
+      {id:'IG3103',name:'مسلم عبد شمال',position:'Maintenance Technician',dailyRate:30000,currency:'IQD'},
+      {id:'IG4096',name:'حيدر فلاح شريف',position:'Laborer',dailyRate:35000,currency:'IQD'},
+      {id:'IG5809',name:'حسين علي جاسم',position:'Civil Engineer',dailyRate:2500,currency:'USD'},
+    ],
+    Mechanical:[
+      {id:'IG1001',name:'Ahmed Kareem',position:'Mechanical Engineer',dailyRate:2000,currency:'USD'},
+      {id:'IG1002',name:'Hassan Ali',position:'Mechanical Technician',dailyRate:40000,currency:'IQD'},
+    ],
+    Electrical:[
+      {id:'IG2001',name:'Omar Saleh',position:'Electrical Engineer',dailyRate:2200,currency:'USD'},
+      {id:'IG2002',name:'Khalid Nasser',position:'Electrician',dailyRate:35000,currency:'IQD'},
+    ],
+    HSE:[{id:'IG3001',name:'Ali Kareem',position:'HSE Manager',dailyRate:2500,currency:'USD'}],
+    QAQC:[{id:'IG4001',name:'Tariq Fadhel',position:'QA/QC Manager',dailyRate:2200,currency:'USD'}],
+    Planning:[{id:'IG5001',name:'Mohammed Latteef',position:'Cost Control Lead',dailyRate:3000,currency:'USD'}],
+  };
+  equipment = [
+    {type:'Excavator',unitRate:250000,unit:'day'},
+    {type:'Crane',unitRate:350000,unit:'day'},
+    {type:'Loader',unitRate:180000,unit:'day'},
+    {type:'Truck',unitRate:120000,unit:'day'},
+    {type:'Generator',unitRate:80000,unit:'day'},
+    {type:'Compactor',unitRate:150000,unit:'day'},
+    {type:'Water Tanker',unitRate:90000,unit:'day'},
+    {type:'Man Lift',unitRate:200000,unit:'day'},
+    {type:'Forklift',unitRate:130000,unit:'day'},
+  ];
+  renderDept(currentDept);
+}
+
+// ── DEPARTMENT ────────────────────────────────────────────────────────────────
+function selectDept(dept) {
+  currentDept = dept;
+  document.querySelectorAll('.dept-tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('sum-dept').textContent = dept;
+  empStatus = {};
+  renderDept(dept);
+}
+
+function renderDept(dept) {
+  const list = employees[dept] || [];
+  const tbody = document.getElementById('emp-tbody');
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--muted);">No employees configured for ${dept}</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map((e,i) => {
+    const rateIQD = e.currency==='USD' ? e.dailyRate * getUSDRate() : e.dailyRate;
+    return `<tr id="emp-row-${e.id}">
+      <td style="color:var(--muted);font-family:var(--mono);font-size:11px;">${i+1}</td>
+      <td><div class="emp-id">${e.id}</div></td>
+      <td><div class="emp-name">${e.name}</div></td>
+      <td><div class="emp-role">${e.position}</div></td>
+      <td><div class="emp-rate">${e.currency==='USD'?'$'+e.dailyRate.toLocaleString():fmt(e.dailyRate)}</div></td>
+      <td>
+        <div class="status-btns">
+          <button class="s-btn" id="s-${e.id}-present" onclick="setStatus('${e.id}','present',${rateIQD})">✓ Present</button>
+          <button class="s-btn" id="s-${e.id}-absent"  onclick="setStatus('${e.id}','absent',0)">✗ Absent</button>
+          <button class="s-btn" id="s-${e.id}-leave"   onclick="setStatus('${e.id}','leave',0)">🏖 Leave</button>
+          <button class="s-btn" id="s-${e.id}-off"     onclick="setStatus('${e.id}','off',0)">⭕ Day Off</button>
+        </div>
+      </td>
+      <td><div class="emp-cost" id="cost-${e.id}">—</div></td>
+    </tr>`;
+  }).join('');
+  calcManpower();
+}
+
+function setStatus(id, status, rateIQD) {
+  empStatus[id] = { status, cost: status==='present'?rateIQD:0 };
+  ['present','absent','leave','off'].forEach(s => {
+    const btn = document.getElementById(`s-${id}-${s}`);
+    if (btn) { btn.className = 's-btn'; if(s===status) btn.classList.add(status); }
+  });
+  const costEl = document.getElementById(`cost-${id}`);
+  if (costEl) costEl.textContent = status==='present' ? fmt(rateIQD) : '—';
+  calcManpower();
+}
+
+function calcManpower() {
+  const total = Object.values(empStatus).reduce((s,e)=>s+e.cost,0);
+  const present= Object.values(empStatus).filter(e=>e.status==='present').length;
+  document.getElementById('mp-cost-display').textContent = fmt(total);
+  document.getElementById('present-count').textContent = `${present} present`;
+  document.getElementById('sum-mp').textContent = fmt(total);
+  document.getElementById('sum-mp-usd').textContent = '$ ' + (total/getUSDRate()).toLocaleString(undefined,{maximumFractionDigits:0});
+  calcTotal();
+}
+
+// ── EQUIPMENT ─────────────────────────────────────────────────────────────────
+let eqRows = [];
+
+function addEqRow() {
+  const rowId = Date.now();
+  eqRows.push(rowId);
+  const container = document.getElementById('eq-rows');
+  const div = document.createElement('div');
+  div.className = 'eq-row';
+  div.id = `eq-${rowId}`;
+
+  const opts = equipment.map(e=>`<option value="${e.unitRate}" data-unit="${e.unit}">${e.type}</option>`).join('');
+  div.innerHTML = `
+    <select onchange="onEqTypeChange(this,${rowId})">
+      <option value="">Select equipment...</option>
+      ${opts}
+      <option value="custom">Custom...</option>
+    </select>
+    <input type="text" placeholder="Description / Plate No." id="eq-desc-${rowId}">
+    <input type="number" placeholder="Qty" min="0" step="0.5" id="eq-qty-${rowId}" onchange="calcEquipment()">
+    <input type="text" placeholder="Unit" id="eq-unit-${rowId}">
+    <input type="number" placeholder="Rate (IQD)" id="eq-rate-${rowId}" onchange="calcEquipment()">
+    <button class="btn-remove" onclick="removeEqRow(${rowId})">×</button>`;
+  container.appendChild(div);
+}
+
+function onEqTypeChange(sel, rowId) {
+  const opt = sel.options[sel.selectedIndex];
+  if (opt.value && opt.value !== 'custom') {
+    document.getElementById(`eq-rate-${rowId}`).value = opt.value;
+    document.getElementById(`eq-unit-${rowId}`).value = opt.dataset.unit || 'day';
+    document.getElementById(`eq-qty-${rowId}`).value  = 1;
+  }
+  calcEquipment();
+}
+
+function removeEqRow(rowId) {
+  eqRows = eqRows.filter(r=>r!==rowId);
+  document.getElementById(`eq-${rowId}`)?.remove();
+  calcEquipment();
+}
+
+function calcEquipment() {
+  let total = 0;
+  eqRows.forEach(rowId => {
+    const qty  = parseFloat(document.getElementById(`eq-qty-${rowId}`)?.value)||0;
+    const rate = parseFloat(document.getElementById(`eq-rate-${rowId}`)?.value)||0;
+    total += qty * rate;
+  });
+  document.getElementById('eq-cost-display').textContent = fmt(total);
+  document.getElementById('sum-eq').textContent = fmt(total);
+  document.getElementById('sum-eq-usd').textContent = '$ ' + (total/getUSDRate()).toLocaleString(undefined,{maximumFractionDigits:0});
+  calcTotal();
+}
+
+// ── BORDER ────────────────────────────────────────────────────────────────────
+function changeCount(type, delta) {
+  if (type==='pa') {
+    paCount = Math.max(0, paCount+delta);
+    document.getElementById('pa-count').textContent = paCount;
+    document.getElementById('pa-count-input').value = paCount;
+  } else {
+    workerCount = Math.max(0, workerCount+delta);
+    document.getElementById('worker-count').textContent = workerCount;
+    document.getElementById('worker-count-input').value = workerCount;
+  }
+  calcBorder();
+}
+
+function calcBorder() {
+  const paTotal     = paCount * borderRates.pa;
+  const workerTotal = workerCount * borderRates.worker;
+  const total       = paTotal + workerTotal;
+  document.getElementById('pa-total').textContent     = fmt(paTotal);
+  document.getElementById('worker-total').textContent = fmt(workerTotal);
+  document.getElementById('border-cost-display').textContent = fmt(total);
+  calcTotal();
+}
+
+// ── TOTAL ─────────────────────────────────────────────────────────────────────
+function calcTotal() {
+  const mp = Object.values(empStatus).reduce((s,e)=>s+e.cost,0);
+  let eq=0;
+  eqRows.forEach(rowId => {
+    const qty=parseFloat(document.getElementById(`eq-qty-${rowId}`)?.value)||0;
+    const rate=parseFloat(document.getElementById(`eq-rate-${rowId}`)?.value)||0;
+    eq += qty*rate;
+  });
+  const border = paCount*borderRates.pa + workerCount*borderRates.worker;
+  const total  = mp + eq + border;
+  document.getElementById('sum-total').textContent     = fmt(total);
+  document.getElementById('sum-total-usd').textContent = '$ ' + (total/getUSDRate()).toLocaleString(undefined,{maximumFractionDigits:0});
+}
+
+function recalcAll() { calcManpower(); calcEquipment(); calcBorder(); }
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function fmt(n) { return 'IQD ' + Math.round(n).toLocaleString(); }
+function getUSDRate() { return parseFloat(document.getElementById('usd-rate').value)||1310; }
+function updateHeader() {
+  const d = new Date(document.getElementById('input-date').value);
+  document.getElementById('date-badge').textContent = d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+}
+
+// ── SUBMIT ────────────────────────────────────────────────────────────────────
+function submitDaily() {
+  const date    = document.getElementById('input-date').value;
+  const by      = document.getElementById('input-by').value.trim();
+  const usdRate = getUSDRate();
+  const notes   = document.getElementById('notes').value.trim();
+
+  if (!date) { alert('Please select a date'); return; }
+
+  // Build attendance records
+  const dept      = currentDept;
+  const deptEmps  = employees[dept]||[];
+  const attendance = deptEmps.map(e => ({
+    id:       e.id,
+    name:     e.name,
+    position: e.position,
+    status:   empStatus[e.id]?.status || 'not-submitted',
+    cost:     empStatus[e.id]?.cost   || 0,
+    currency: e.currency,
+    dailyRate:e.dailyRate,
+  }));
+
+  // Build equipment records
+  const eqData = eqRows.map(rowId => ({
+    type:  document.querySelector(`#eq-${rowId} select`)?.options[document.querySelector(`#eq-${rowId} select`)?.selectedIndex]?.text || '',
+    desc:  document.getElementById(`eq-desc-${rowId}`)?.value || '',
+    qty:   parseFloat(document.getElementById(`eq-qty-${rowId}`)?.value)||0,
+    unit:  document.getElementById(`eq-unit-${rowId}`)?.value || '',
+    rate:  parseFloat(document.getElementById(`eq-rate-${rowId}`)?.value)||0,
+  })).filter(e=>e.qty>0&&e.rate>0);
+
+  const payload = {
+    action:     'submit_daily',
+    date,
+    dept,
+    by,
+    usdRate,
+    attendance,
+    equipment:  eqData,
+    border: { paCount, workerCount, paRate:borderRates.pa, workerRate:borderRates.worker },
+    notes,
+    submittedAt: new Date().toISOString(),
+  };
+
+  document.getElementById('btn-submit').disabled = true;
+  document.getElementById('btn-submit').textContent = 'Submitting...';
+
+  fireFF(payload);
+
+  setTimeout(() => {
+    const banner = document.getElementById('success-banner');
+    banner.classList.add('show');
+    document.getElementById('success-detail').textContent =
+      `${dept} · ${date} · ${Object.values(empStatus).filter(e=>e.status==='present').length} present · Total: ${fmt(Object.values(empStatus).reduce((s,e)=>s+e.cost,0))}`;
+    document.getElementById('btn-submit').disabled = false;
+    document.getElementById('btn-submit').textContent = '✓ Submit Daily Report';
+    empStatus = {};
+    renderDept(dept);
+    eqRows = [];
+    document.getElementById('eq-rows').innerHTML = '';
+    paCount=0; workerCount=0;
+    document.getElementById('pa-count').textContent='0';
+    document.getElementById('worker-count').textContent='0';
+    calcTotal();
+  }, 800);
+}
+
+function fireFF(data) {
+  if (!SCRIPT_URL||SCRIPT_URL==='YOUR_COST_SCRIPT_URL') { console.log('Cost payload:', data); return; }
+  try {
+    const img=document.createElement('img');
+    img.src=SCRIPT_URL+'?payload='+encodeURIComponent(JSON.stringify(data));
+    img.style.display='none';
+    document.body.appendChild(img);
+    img.onload=img.onerror=()=>{try{document.body.removeChild(img);}catch(e){}};
+  } catch(e){console.error(e);}
+}
+
+// ── BOOT ──────────────────────────────────────────────────────────────────────
+loadMasterData();
+</script>
+</body>
+</html>
