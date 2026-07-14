@@ -312,6 +312,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
           <th>Receiving Date</th>
           <th>Item Name</th>
           <th>ROP #</th>
+          <th>PO #</th>
           <th>PO Amount (IQD)</th>
           <th style="width:130px;">CTR #</th>
           <th>Notes</th>
@@ -326,7 +327,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
     <div class="update-po-box" style="margin-top:12px;">
       <div style="font-size:12px;font-weight:600;color:var(--warning);margin-bottom:10px;">🔄 Update PO Amount for existing record</div>
       <div class="update-po-grid">
-        <div><label class="field-label">ROP # to update</label><input type="text" id="update-rop" placeholder="e.g. ROP-2024-001" class="mono-input"></div>
+        <div><label class="field-label">PO # to update</label><input type="text" id="update-pono" placeholder="e.g. PO-2024-001" class="mono-input"></div>
         <div><label class="field-label">PO Amount (IQD)</label><input type="number" id="update-po-amount" placeholder="0"></div>
         <button class="btn-sm btn-sm-primary" style="height:38px;margin-top:18px;" onclick="updatePOAmount()">Update</button>
       </div>
@@ -370,8 +371,6 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
 <script>
 // ── CONFIG ────────────────────────────────────────────────────────────────────
 const SCRIPT_URL = 'https://script.google.com/a/macros/igccgroup-iq.com/s/AKfycbxcu0GJQKVtE2hVbYjixahHiAzcsie-Vmu8ELRIj5zSsIcZHlxhYAB-Zo-hgqIoyXHB/exec';
-const CTR_CSV    = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vThe2Huy18W_ynocBDQ1FQoI45gGU18pu33KD4iibTl3VU9WppGE1HwSHmuHViVWbPXd2g0GL4Yds6w/pub?gid=0&single=true&output=csv';
-
 // ── STATE ─────────────────────────────────────────────────────────────────────
 let currentDept = 'Civil';
 let employees   = {};
@@ -395,17 +394,14 @@ document.getElementById('date-badge').textContent = today.toLocaleDateString('en
 
 // ── LOAD MASTER ───────────────────────────────────────────────────────────────
 async function loadMaster() {
-  // Load CTR list from CSV
+  // Load CTR list from Cost Control sheet
   try {
-    const res  = await fetch(CTR_CSV);
-    const text = await res.text();
-    const rows = text.trim().split('\n').slice(1);
-    ctrList = rows.map(r => {
-      const cols = r.split(',');
-      return { id:cols[0]?.trim().replace(/"/g,''), name:cols[1]?.trim().replace(/"/g,''), status:cols[4]?.trim().replace(/"/g,'') };
-    }).filter(c => c.id && c.status?.toLowerCase()==='ongoing');
-    console.log('CTR loaded:', ctrList.length);
+    const res  = await fetch(SCRIPT_URL + '?action=get_ctrs');
+    const json = await res.json();
+    ctrList = json.ctrs || [];
+    console.log('CTR loaded from sheet:', ctrList.length);
   } catch(e) {
+    console.log('CTR load failed, using defaults');
     ctrList = [{id:'CTR-001',name:'BGC Package 1'},{id:'CTR-002',name:'BGC Package 2'},{id:'CTR-003',name:'General'}];
   }
 
@@ -524,14 +520,30 @@ function addEmpToList() {
   const rate = parseFloat(document.getElementById('new-emp-rate').value)||0;
   const cur  = document.getElementById('new-emp-cur').value;
   if (!name||!rate) { alert('Name and daily rate are required'); return; }
-  const empId = id||`TEMP-${Date.now()}`;
+  const empId = id || `TEMP-${Date.now()}`;
+  const newEmp = {id:empId, name, position:pos, dailyRate:rate, currency:cur, dept:currentDept, status:'Active'};
+
+  // Add to local list immediately
   if (!employees[currentDept]) employees[currentDept]=[];
-  employees[currentDept].push({id:empId,name,position:pos,dailyRate:rate,currency:cur});
+  employees[currentDept].push(newEmp);
   renderDept(currentDept);
+
+  // Save to Google Sheet permanently
+  fireFF({ action:'add_employee', ...newEmp });
+  console.log('Employee saved to sheet:', empId, name);
+
+  // Clear form
   document.getElementById('new-emp-id').value='';
   document.getElementById('new-emp-name').value='';
   document.getElementById('new-emp-rate').value='';
   document.getElementById('add-emp-form').classList.remove('show');
+
+  // Show confirmation
+  const hint = document.createElement('div');
+  hint.style.cssText='font-size:11px;color:var(--success);font-family:var(--mono);margin-top:6px;';
+  hint.textContent = '✓ ' + name + ' added and saved permanently';
+  document.getElementById('add-emp-form').parentNode.appendChild(hint);
+  setTimeout(()=>hint.remove(), 3000);
 }
 
 function calcMP() {
@@ -711,6 +723,7 @@ function addProcRow() {
     <td><input type="date" id="proc-date-${rid}" value="${dateStr}"></td>
     <td><input type="text" id="proc-item-${rid}" placeholder="Item name"></td>
     <td><input type="text" id="proc-rop-${rid}" placeholder="ROP-XXXX" class="mono-input"></td>
+    <td><input type="text" id="proc-pono-${rid}" placeholder="PO-XXXX" class="mono-input"></td>
     <td><input type="number" id="proc-po-${rid}" placeholder="Leave blank if unknown"></td>
     <td>${ctrSelectHTML('proc-ctr-'+rid)}</td>
     <td><input type="text" id="proc-notes-${rid}" placeholder="Notes..."></td>
@@ -719,16 +732,16 @@ function addProcRow() {
 }
 
 async function updatePOAmount() {
-  const rop    = document.getElementById('update-rop').value.trim();
+  const pono   = document.getElementById('update-pono').value.trim();
   const amount = document.getElementById('update-po-amount').value.trim();
   const status = document.getElementById('update-po-status');
-  if (!rop||!amount){status.textContent='⚠ Enter both ROP # and PO amount';status.style.color='var(--warning)';return;}
+  if (!pono||!amount){status.textContent='⚠ Enter both PO # and PO amount';status.style.color='var(--warning)';return;}
   status.textContent='⟳ Updating...';status.style.color='var(--muted)';
-  fireFF({action:'update_po', rop, amount:parseFloat(amount)});
+  fireFF({action:'update_po', pono, amount:parseFloat(amount)});
   setTimeout(()=>{
-    status.textContent=`✓ PO amount updated for ${rop}: IQD ${parseFloat(amount).toLocaleString()}`;
+    status.textContent=`✓ PO amount updated for ${pono}: IQD ${parseFloat(amount).toLocaleString()}`;
     status.style.color='var(--success)';
-    document.getElementById('update-rop').value='';
+    document.getElementById('update-pono').value='';
     document.getElementById('update-po-amount').value='';
   },800);
 }
@@ -782,11 +795,21 @@ function addNewAsset() {
     <div class="cost-cell" id="cr-total-${i}">—</div>
     <div><button class="btn-remove" onclick="removeAssetRow(${i})">×</button></div>`;
   container.appendChild(div);
-  // Save new asset to script
-  fireFF({action:'add_asset',name,price});
+  // Save to sheet permanently
+  fireFF({action:'add_asset', name, price});
+  // Also add to local assetList so it persists in this session
+  assetList.push({name, price});
+
   document.getElementById('new-asset-name').value='';
   document.getElementById('new-asset-price').value='';
   document.getElementById('add-asset-form').classList.remove('show');
+
+  // Show confirmation
+  const hint = document.createElement('div');
+  hint.style.cssText='font-size:11px;color:var(--success);font-family:var(--mono);margin-top:6px;';
+  hint.textContent = '✓ ' + name + ' saved to asset list permanently';
+  document.getElementById('add-asset-form').parentNode.appendChild(hint);
+  setTimeout(()=>hint.remove(), 3000);
 }
 
 // ── TOTAL ─────────────────────────────────────────────────────────────────────
@@ -874,6 +897,7 @@ function submitDaily() {
     recDate: document.getElementById(`proc-date-${rid}`)?.value||'',
     item:    document.getElementById(`proc-item-${rid}`)?.value||'',
     rop:     document.getElementById(`proc-rop-${rid}`)?.value||'',
+    pono:    document.getElementById(`proc-pono-${rid}`)?.value||'',
     poAmt:   parseFloat(document.getElementById(`proc-po-${rid}`)?.value)||0,
     ctr:     document.getElementById(`proc-ctr-${rid}`)?.value||'',
     notes:   document.getElementById(`proc-notes-${rid}`)?.value||'',
