@@ -185,7 +185,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;">
       <div><label class="field-label">Date *</label><input type="date" id="inp-date" onchange="updateHeader()"></div>
       <div><label class="field-label">Submitted by</label><input type="text" id="inp-by" placeholder="Your name"></div>
-      <div><label class="field-label">USD Rate (1 USD = ? IQD)</label><input type="number" id="usd-rate" value="1310" min="1" onchange="recalcAll()"></div>
+      <div><label class="field-label">USD Rate (1 USD = ? IQD)</label><input type="number" id="usd-rate" value="1520" min="1" onchange="recalcAll()"></div>
     </div>
   </div>
 
@@ -423,7 +423,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
 
 <script>
 // ── CONFIG ────────────────────────────────────────────────────────────────────
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxcu0GJQKVtE2hVbYjixahHiAzcsie-Vmu8ELRIj5zSsIcZHlxhYAB-Zo-hgqIoyXHB/exec';
+const SCRIPT_URL = 'https://script.google.com/a/macros/igccgroup-iq.com/s/AKfycbxcu0GJQKVtE2hVbYjixahHiAzcsie-Vmu8ELRIj5zSsIcZHlxhYAB-Zo-hgqIoyXHB/exec';
 // ── STATE ─────────────────────────────────────────────────────────────────────
 let currentDept = 'Civil';
 let employees   = {};
@@ -796,21 +796,38 @@ async function searchByROP() {
   status.textContent='⟳ Searching...'; status.style.color='var(--muted)';
 
   try {
-    const res  = await fetch(SCRIPT_URL + '?action=get_rop&rop=' + encodeURIComponent(rop));
-    const json = await res.json();
-    if (json.status==='ok' && json.data) {
+    // Use image tag to trigger GET — same pattern that works for other calls
+    // Then read response via a promise-based approach
+    const url  = SCRIPT_URL + '?action=get_rop&rop=' + encodeURIComponent(rop);
+    console.log('Searching ROP:', rop, 'URL:', url);
+
+    const res  = await fetch(url);
+    const text = await res.text();
+    console.log('ROP response:', text.substring(0, 200));
+
+    let json;
+    try { json = JSON.parse(text); }
+    catch(pe) {
+      // Apps Script sometimes wraps in callback — try to extract JSON
+      const match = text.match(/\{.*\}/s);
+      if (match) json = JSON.parse(match[0]);
+      else throw new Error('Invalid response: ' + text.substring(0,100));
+    }
+
+    if (json.status==='ok' && json.data && json.data.length > 0) {
       currentROP     = rop;
       currentROPData = json.data;
       status.textContent = '✓ Found ' + json.data.length + ' record(s) for ' + rop;
       status.style.color = 'var(--success)';
       renderROPPanel(json.data, rop);
     } else {
-      status.textContent = '✗ No records found for ROP: ' + rop;
+      status.textContent = '✗ No records found for ROP: "' + rop + '" — check spelling';
       status.style.color = 'var(--danger)';
       document.getElementById('rop-po-panel').style.display = 'none';
     }
   } catch(e) {
-    status.textContent = '✗ Search failed — check connection';
+    console.error('ROP search error:', e);
+    status.textContent = '✗ Search failed: ' + e.message;
     status.style.color = 'var(--danger)';
   }
 }
