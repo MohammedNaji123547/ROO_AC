@@ -135,6 +135,7 @@ input[type=date]:focus,select:focus{border-color:var(--blue);}
 </div>
 
 <div class="container">
+  <div id="debug-panel" style="background:#1e293b;color:#a3e635;font-family:monospace;font-size:11px;padding:12px 16px;border-radius:8px;margin-bottom:16px;white-space:pre-wrap;display:none;max-height:150px;overflow-y:auto;line-height:1.6;"></div>
   <div id="loading" class="loading"><div class="spinner"></div>Loading dashboard data...</div>
   <div id="dashboard-content" style="display:none;">
 
@@ -260,9 +261,17 @@ document.getElementById('date-from').value = `${d30.getFullYear()}-${pad(d30.get
 document.getElementById('date-to').value   = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
 
 // ── LOAD ──────────────────────────────────────────────────────────────────────
+function dbg(msg) {
+  const p = document.getElementById('debug-panel');
+  if (p) { p.style.display='block'; p.textContent += new Date().toLocaleTimeString()+' '+msg+'\n'; }
+  console.log(msg);
+}
+
 async function loadDashboard() {
   document.getElementById('loading').style.display='block';
   document.getElementById('dashboard-content').style.display='none';
+  const dp = document.getElementById('debug-panel');
+  if (dp) { dp.textContent=''; dp.style.display='block'; }
 
   const from = document.getElementById('date-from').value;
   const to   = document.getElementById('date-to').value;
@@ -274,11 +283,11 @@ async function loadDashboard() {
   // Try to fetch real data — use mode:'cors' with credentials for workspace scripts
   try {
     const url = SCRIPT_URL + '?action=get_dashboard&from=' + from + '&to=' + to;
-    console.log('Fetching dashboard:', url);
+    dbg('Fetching: '+url);
     const res  = await fetch(url, { redirect:'follow', credentials:'include' });
     const text = await res.text();
-    console.log('Dashboard response type:', res.type, 'status:', res.status);
-    console.log('Dashboard response preview:', text.substring(0,300));
+    dbg('Response type:'+res.type+' status:'+res.status);
+    dbg('Response: '+text.substring(0,200));
     let json;
     try { json = JSON.parse(text); }
     catch(pe) {
@@ -289,12 +298,12 @@ async function loadDashboard() {
     if (json && json.status==='ok' && json.data) {
       data   = json.data;
       loaded = true;
-      console.log('Real data loaded:', data.length, 'rows');
+      dbg('✓ Real data: '+data.length+' rows');
     } else if (json) {
-      console.log('Script responded but no data:', JSON.stringify(json));
+      dbg('Script responded, no data: '+JSON.stringify(json).substring(0,100));
     }
   } catch(e) {
-    console.log('Fetch failed:', e.message, '— check script deployment is set to Anyone');
+    dbg('✗ Fetch failed: '+e.message);
   }
 
   // Update USD label from data
@@ -305,13 +314,13 @@ async function loadDashboard() {
     window._usdRate = avgRate;
   }
 
-  // Filter by department
+  dbg('After fetch: loaded='+loaded+' rows='+data.length);
   if (dept && data.length) data = data.filter(r=>r['Department']===dept);
 
   if (data.length === 0 && !loaded) {
     // No real data — show demo with label
     data = getDemoData();
-    document.getElementById('last-updated').textContent = 'Demo data (no submissions yet)';
+    document.getElementById('last-updated').textContent = 'Demo data (no submissions yet)'; dbg('→ Showing DEMO data');
   } else if (data.length === 0 && loaded) {
     document.getElementById('last-updated').textContent = 'No data for selected period';
   }
