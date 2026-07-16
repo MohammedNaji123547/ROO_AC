@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IGCC — Cost Control Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -73,10 +74,28 @@ input[type=date]:focus,select:focus{border-color:var(--blue);}
 
 @media(max-width:900px){.kpi-grid{grid-template-columns:repeat(3,1fr);}.chart-grid{grid-template-columns:1fr;}.chart-card.full{grid-column:span 1;}}
 @media(max-width:600px){.kpi-grid{grid-template-columns:1fr 1fr;}}
+.auth-screen{position:fixed;inset:0;background:#f0f4f8;display:flex;align-items:center;justify-content:center;z-index:9999;}
+.auth-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:44px 40px;max-width:400px;width:100%;box-shadow:var(--shadow-md);text-align:center;}
+.auth-logo{background:var(--accent);color:#fff;font-family:var(--mono);font-size:18px;font-weight:700;width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;}
+.auth-title{font-size:20px;font-weight:700;margin-bottom:6px;}
+.auth-sub{font-size:13px;color:var(--muted);margin-bottom:28px;line-height:1.6;}
+.auth-error{background:rgba(220,38,38,.06);border:1px solid rgba(220,38,38,.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--danger);margin-top:16px;display:none;}
+.auth-error.show{display:block;}
+.btn-signout{background:none;border:1px solid rgba(255,255,255,.3);border-radius:6px;color:rgba(255,255,255,.7);cursor:pointer;font-family:var(--sans);font-size:12px;padding:5px 12px;}
+.btn-signout:hover{border-color:#fff;color:#fff;}
 </style>
 </head>
 <body>
 
+<div class="auth-screen" id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">IG</div>
+    <div class="auth-title">IGCC Cost Dashboard</div>
+    <div class="auth-sub">Sign in with your company Google account to access the cost control dashboard.</div>
+    <div id="google-signin-btn" style="display:flex;justify-content:center;"></div>
+    <div class="auth-error" id="auth-error">Access denied — your email is not authorized.</div>
+  </div>
+</div>
 <div class="header">
   <div class="header-left">
     <span class="logo">IGCC</span>
@@ -85,7 +104,10 @@ input[type=date]:focus,select:focus{border-color:var(--blue);}
       <div class="header-sub">Daily manpower, equipment & border costs</div>
     </div>
   </div>
-  <div class="last-updated" id="last-updated">—</div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div class="last-updated" id="last-updated">—</div>
+    <button class="btn-signout" id="btn-signout" style="display:none;" onclick="signOut()">Sign out</button>
+  </div>
 </div>
 
 <div class="filter-bar">
@@ -249,23 +271,30 @@ async function loadDashboard() {
   let data = [];
   let loaded = false;
 
-  // Try to fetch real data from script
+  // Try to fetch real data — use mode:'cors' with credentials for workspace scripts
   try {
     const url = SCRIPT_URL + '?action=get_dashboard&from=' + from + '&to=' + to;
     console.log('Fetching dashboard:', url);
-    const res  = await fetch(url);
+    const res  = await fetch(url, { redirect:'follow', credentials:'include' });
     const text = await res.text();
-    console.log('Dashboard response:', text.substring(0,200));
+    console.log('Dashboard response type:', res.type, 'status:', res.status);
+    console.log('Dashboard response preview:', text.substring(0,300));
     let json;
     try { json = JSON.parse(text); }
-    catch(pe) { const m=text.match(/\{.*\}/s); if(m) json=JSON.parse(m[0]); }
+    catch(pe) {
+      // Try to extract JSON from response
+      const m = text.match(/\{[\s\S]*\}/);
+      if (m) { try { json = JSON.parse(m[0]); } catch(e2) {} }
+    }
     if (json && json.status==='ok' && json.data) {
       data   = json.data;
       loaded = true;
       console.log('Real data loaded:', data.length, 'rows');
+    } else if (json) {
+      console.log('Script responded but no data:', JSON.stringify(json));
     }
   } catch(e) {
-    console.log('Fetch failed:', e.message);
+    console.log('Fetch failed:', e.message, '— check script deployment is set to Anyone');
   }
 
   // Update USD label from data
@@ -473,8 +502,49 @@ function getDemoData() {
   return rows;
 }
 
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+const GOOGLE_CLIENT_ID = '392743906594-f4huq0l2hf3b71tpn5hh4eba5ftt9ti0.apps.googleusercontent.com';
+const ALLOWED_EMAILS   = ['mohammed.lateef@igccgroup-iq.com'];
+let currentUser = null;
+
+function initAuth() {
+  const saved = sessionStorage.getItem('igcc_dash_user');
+  if (saved) {
+    try {
+      currentUser = JSON.parse(saved);
+      if (ALLOWED_EMAILS.includes(currentUser.email.toLowerCase())) { showApp(); return; }
+    } catch(e) {}
+    sessionStorage.removeItem('igcc_dash_user');
+  }
+  google.accounts.id.initialize({ client_id:GOOGLE_CLIENT_ID, callback:handleCredential, auto_select:false });
+  google.accounts.id.renderButton(document.getElementById('google-signin-btn'),
+    { theme:'outline', size:'large', width:320, text:'signin_with' });
+  document.getElementById('auth-screen').style.display = 'flex';
+}
+
+function handleCredential(response) {
+  const p   = parseJwt(response.credential);
+  const email = (p.email||'').toLowerCase();
+  if (ALLOWED_EMAILS.includes(email)) {
+    currentUser = { name:p.name, email:p.email };
+    sessionStorage.setItem('igcc_dash_user', JSON.stringify(currentUser));
+    showApp();
+  } else {
+    document.getElementById('auth-error').classList.add('show');
+  }
+}
+
+function showApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('btn-signout').style.display = 'block';
+  loadDashboard();
+}
+
+function signOut() { sessionStorage.removeItem('igcc_dash_user'); location.reload(); }
+function parseJwt(token) { return JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))); }
+
 // ── BOOT ──────────────────────────────────────────────────────────────────────
-loadDashboard();
+window.addEventListener('load', function() { setTimeout(initAuth, 300); });
 </script>
 </body>
 </html>
