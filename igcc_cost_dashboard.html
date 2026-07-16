@@ -280,38 +280,26 @@ async function loadDashboard() {
   let data = [];
   let loaded = false;
 
-  // Try to fetch real data — use mode:'cors' with credentials for workspace scripts
+    // Use JSONP to bypass CORS on workspace Apps Script URL
   try {
-    const url = SCRIPT_URL + '?action=get_dashboard&from=' + from + '&to=' + to;
-    dbg('Fetching: '+url);
-    const res  = await fetch(url, { redirect:'follow', credentials:'include' });
-    const text = await res.text();
-    dbg('Response type:'+res.type+' status:'+res.status);
-    dbg('Response: '+text.substring(0,200));
-    let json;
-    try { json = JSON.parse(text); }
-    catch(pe) {
-      // Try to extract JSON from response
-      const m = text.match(/\{[\s\S]*\}/);
-      if (m) { try { json = JSON.parse(m[0]); } catch(e2) {} }
-    }
-    if (json && json.status==='ok' && json.data) {
-      data   = json.data;
-      loaded = true;
+    const url = SCRIPT_URL + '?action=get_dashboard&from=' + from + '&to=' + to + '&callback=__dashCB';
+    dbg('JSONP: '+url.substring(0,80)+'...');
+    const result = await new Promise((resolve, reject) => {
+      const timeout = setTimeout(()=>{ delete window.__dashCB; reject(new Error('Timeout 10s')); }, 10000);
+      window.__dashCB = function(json) { clearTimeout(timeout); delete window.__dashCB; resolve(json); };
+      const s = document.createElement('script');
+      s.src = url;
+      s.onerror = ()=>{ clearTimeout(timeout); delete window.__dashCB; reject(new Error('Script load failed')); };
+      document.head.appendChild(s);
+    });
+    if (result && result.status==='ok' && result.data) {
+      data = result.data; loaded = true;
       dbg('✓ Real data: '+data.length+' rows');
-    } else if (json) {
-      dbg('Script responded, no data: '+JSON.stringify(json).substring(0,100));
+    } else {
+      dbg('No data in response: '+JSON.stringify(result).substring(0,100));
     }
   } catch(e) {
-    dbg('✗ Fetch failed: '+e.message);
-  }
-
-  // Update USD label from data
-  if (data.length > 0) {
-    const rates = data.map(r=>parseFloat(r['USD Rate'])||1520).filter(r=>r>0);
-    const avgRate = rates.length ? Math.round(rates.reduce((a,b)=>a+b,0)/rates.length) : 1520;
-    document.getElementById('usd-label').textContent = '1 USD = ' + avgRate.toLocaleString() + ' IQD';
-    window._usdRate = avgRate;
+    dbg('✗ JSONP failed: '+e.message);
   }
 
   dbg('After fetch: loaded='+loaded+' rows='+data.length);
