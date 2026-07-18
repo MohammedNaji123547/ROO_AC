@@ -11,8 +11,8 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
   --bg:#f0f4f8;--surface:#fff;--surface2:#f8fafc;--border:#dde3ed;
-  --accent:#0f172a;--blue:#0284c7;--success:#16a34a;--danger:#dc2626;--warning:#d97706;
-  --purple:#7c3aed;--text:#0f172a;--muted:#64748b;
+  --accent:#0f172a;--blue:#0284c7;--blue-dim:rgba(2,132,199,.08);--success:#16a34a;--danger:#dc2626;--warning:#d97706;
+  --purple:#7c3aed;--text:#0f172a;--muted:#64748b;--label:#475569;
   --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;
   --shadow:0 1px 3px rgba(0,0,0,.08);--shadow-md:0 4px 12px rgba(0,0,0,.1);
 }
@@ -23,20 +23,15 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
 .header-title{font-size:14px;font-weight:600;color:#fff;}
 .header-sub{font-size:11px;color:rgba(255,255,255,.6);}
 .last-updated{font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.5);}
-
-/* FILTER BAR */
+.btn-signout{background:none;border:1px solid rgba(255,255,255,.3);border-radius:6px;color:rgba(255,255,255,.7);cursor:pointer;font-family:var(--sans);font-size:12px;padding:5px 12px;}
+.btn-signout:hover{border-color:#fff;color:#fff;}
 .filter-bar{background:#fff;border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:var(--shadow);}
 .filter-group{display:flex;align-items:center;gap:8px;}
 .filter-label{font-size:11px;font-weight:600;color:var(--label);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;}
 input[type=date],select{background:#fff;border:1.5px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--sans);font-size:13px;padding:7px 10px;outline:none;}
-input[type=date]:focus,select:focus{border-color:var(--blue);}
-.btn-refresh{background:var(--accent);border:none;border-radius:8px;color:#fff;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:600;padding:8px 18px;transition:opacity .15s;}
+.btn-refresh{background:var(--accent);border:none;border-radius:8px;color:#fff;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:600;padding:8px 18px;}
 .btn-refresh:hover{opacity:.85;}
-
-/* CONTAINER */
 .container{max-width:1400px;margin:0 auto;padding:24px 20px;}
-
-/* KPI CARDS */
 .kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px;}
 .kpi-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px 20px;box-shadow:var(--shadow);position:relative;overflow:hidden;}
 .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--card-color,var(--blue));}
@@ -44,16 +39,12 @@ input[type=date]:focus,select:focus{border-color:var(--blue);}
 .kpi-value{font-family:var(--mono);font-size:22px;font-weight:700;color:var(--text);line-height:1;}
 .kpi-sub{font-size:11px;color:var(--muted);margin-top:4px;font-family:var(--mono);}
 .kpi-icon{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:28px;opacity:.15;}
-
-/* CHARTS */
 .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
 .chart-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px;box-shadow:var(--shadow);}
 .chart-card.full{grid-column:span 2;}
 .chart-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;}
 .chart-sub{font-size:11px;color:var(--muted);margin-bottom:16px;}
 .chart-wrap{position:relative;height:260px;}
-
-/* DEPT TABLE */
 .table-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px;box-shadow:var(--shadow);margin-bottom:16px;}
 .table-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:14px;}
 .data-table{width:100%;border-collapse:collapse;}
@@ -64,16 +55,9 @@ input[type=date]:focus,select:focus{border-color:var(--blue);}
 .mono{font-family:var(--mono);}
 .pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;font-family:var(--mono);}
 .pill-blue{background:var(--blue-dim);color:var(--blue);}
-.pill-green{background:rgba(22,163,74,.1);color:var(--success);}
-.pill-orange{background:rgba(217,119,6,.1);color:var(--warning);}
-
-/* LOADING */
 .loading{text-align:center;padding:60px 20px;color:var(--muted);}
 .spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px;}
 @keyframes spin{to{transform:rotate(360deg);}}
-
-@media(max-width:900px){.kpi-grid{grid-template-columns:repeat(3,1fr);}.chart-grid{grid-template-columns:1fr;}.chart-card.full{grid-column:span 1;}}
-@media(max-width:600px){.kpi-grid{grid-template-columns:1fr 1fr;}}
 .auth-screen{position:fixed;inset:0;background:#f0f4f8;display:flex;align-items:center;justify-content:center;z-index:9999;}
 .auth-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:44px 40px;max-width:400px;width:100%;box-shadow:var(--shadow-md);text-align:center;}
 .auth-logo{background:var(--accent);color:#fff;font-family:var(--mono);font-size:18px;font-weight:700;width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;}
@@ -81,8 +65,9 @@ input[type=date]:focus,select:focus{border-color:var(--blue);}
 .auth-sub{font-size:13px;color:var(--muted);margin-bottom:28px;line-height:1.6;}
 .auth-error{background:rgba(220,38,38,.06);border:1px solid rgba(220,38,38,.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--danger);margin-top:16px;display:none;}
 .auth-error.show{display:block;}
-.btn-signout{background:none;border:1px solid rgba(255,255,255,.3);border-radius:6px;color:rgba(255,255,255,.7);cursor:pointer;font-family:var(--sans);font-size:12px;padding:5px 12px;}
-.btn-signout:hover{border-color:#fff;color:#fff;}
+.debug{background:#1e293b;color:#a3e635;font-family:monospace;font-size:11px;padding:12px 16px;border-radius:8px;margin-bottom:16px;white-space:pre-wrap;max-height:150px;overflow-y:auto;line-height:1.6;}
+@media(max-width:900px){.kpi-grid{grid-template-columns:repeat(3,1fr);}.chart-grid{grid-template-columns:1fr;}.chart-card.full{grid-column:span 1;}}
+@media(max-width:600px){.kpi-grid{grid-template-columns:1fr 1fr;}}
 </style>
 </head>
 <body>
@@ -91,11 +76,12 @@ input[type=date]:focus,select:focus{border-color:var(--blue);}
   <div class="auth-card">
     <div class="auth-logo">IG</div>
     <div class="auth-title">IGCC Cost Dashboard</div>
-    <div class="auth-sub">Sign in with your company Google account to access the cost control dashboard.</div>
+    <div class="auth-sub">Sign in with your IGCC Google account to access the cost control dashboard.</div>
     <div id="google-signin-btn" style="display:flex;justify-content:center;"></div>
     <div class="auth-error" id="auth-error">Access denied — your email is not authorized.</div>
   </div>
 </div>
+
 <div class="header">
   <div class="header-left">
     <span class="logo">IGCC</span>
@@ -111,14 +97,8 @@ input[type=date]:focus,select:focus{border-color:var(--blue);}
 </div>
 
 <div class="filter-bar">
-  <div class="filter-group">
-    <span class="filter-label">From</span>
-    <input type="date" id="date-from">
-  </div>
-  <div class="filter-group">
-    <span class="filter-label">To</span>
-    <input type="date" id="date-to">
-  </div>
+  <div class="filter-group"><span class="filter-label">From</span><input type="date" id="date-from"></div>
+  <div class="filter-group"><span class="filter-label">To</span><input type="date" id="date-to"></div>
   <div class="filter-group">
     <span class="filter-label">Department</span>
     <select id="dept-filter">
@@ -135,375 +115,70 @@ input[type=date]:focus,select:focus{border-color:var(--blue);}
 </div>
 
 <div class="container">
-  <div id="debug-panel" style="background:#1e293b;color:#a3e635;font-family:monospace;font-size:11px;padding:12px 16px;border-radius:8px;margin-bottom:16px;white-space:pre-wrap;display:none;max-height:150px;overflow-y:auto;line-height:1.6;"></div>
+  <div class="debug" id="debug-panel" style="display:none;"></div>
   <div id="loading" class="loading"><div class="spinner"></div>Loading dashboard data...</div>
   <div id="dashboard-content" style="display:none;">
-
-    <!-- KPI CARDS -->
     <div class="kpi-grid">
-      <div class="kpi-card" style="--card-color:var(--blue);">
-        <div class="kpi-label">Total Cost (IQD)</div>
-        <div class="kpi-value" id="kpi-total-iqd">—</div>
-        <div class="kpi-sub" id="kpi-total-usd">—</div>
-        <div class="kpi-icon">💰</div>
-      </div>
-      <div class="kpi-card" style="--card-color:var(--success);">
-        <div class="kpi-label">Manpower Cost</div>
-        <div class="kpi-value" id="kpi-mp">—</div>
-        <div class="kpi-sub" id="kpi-mp-pct">— of total</div>
-        <div class="kpi-icon">👷</div>
-      </div>
-      <div class="kpi-card" style="--card-color:var(--warning);">
-        <div class="kpi-label">Equipment Cost</div>
-        <div class="kpi-value" id="kpi-eq">—</div>
-        <div class="kpi-sub" id="kpi-eq-pct">— of total</div>
-        <div class="kpi-icon">🚜</div>
-      </div>
-      <div class="kpi-card" style="--card-color:var(--purple);">
-        <div class="kpi-label">Border Cost</div>
-        <div class="kpi-value" id="kpi-brd">—</div>
-        <div class="kpi-sub" id="kpi-brd-pct">— of total</div>
-        <div class="kpi-icon">🏗</div>
-      </div>
-      <div class="kpi-card" style="--card-color:var(--danger);">
-        <div class="kpi-label">Avg Daily Cost</div>
-        <div class="kpi-value" id="kpi-avg">—</div>
-        <div class="kpi-sub" id="kpi-days">— days recorded</div>
-        <div class="kpi-icon">📅</div>
-      </div>
+      <div class="kpi-card" style="--card-color:var(--blue);"><div class="kpi-label">Total Cost (IQD)</div><div class="kpi-value" id="kpi-total-iqd">—</div><div class="kpi-sub" id="kpi-total-usd">—</div><div class="kpi-icon">💰</div></div>
+      <div class="kpi-card" style="--card-color:var(--success);"><div class="kpi-label">Manpower Cost</div><div class="kpi-value" id="kpi-mp">—</div><div class="kpi-sub" id="kpi-mp-pct">— of total</div><div class="kpi-icon">👷</div></div>
+      <div class="kpi-card" style="--card-color:var(--warning);"><div class="kpi-label">Equipment Cost</div><div class="kpi-value" id="kpi-eq">—</div><div class="kpi-sub" id="kpi-eq-pct">— of total</div><div class="kpi-icon">🚜</div></div>
+      <div class="kpi-card" style="--card-color:var(--purple);"><div class="kpi-label">Border Cost</div><div class="kpi-value" id="kpi-brd">—</div><div class="kpi-sub" id="kpi-brd-pct">— of total</div><div class="kpi-icon">🏗</div></div>
+      <div class="kpi-card" style="--card-color:var(--danger);"><div class="kpi-label">Avg Daily Cost</div><div class="kpi-value" id="kpi-avg">—</div><div class="kpi-sub" id="kpi-days">— days recorded</div><div class="kpi-icon">📅</div></div>
     </div>
-
-    <!-- CHARTS ROW 1 -->
     <div class="chart-grid">
-      <div class="chart-card full">
-        <div class="chart-title">Daily Cost Trend</div>
-        <div class="chart-sub">Total cost per day broken down by category</div>
-        <div class="chart-wrap"><canvas id="chart-daily"></canvas></div>
-      </div>
+      <div class="chart-card full"><div class="chart-title">Daily Cost Trend</div><div class="chart-sub">Total cost per day broken down by category</div><div class="chart-wrap"><canvas id="chart-daily"></canvas></div></div>
     </div>
-
-    <!-- CHARTS ROW 2 -->
     <div class="chart-grid">
-      <div class="chart-card">
-        <div class="chart-title">Cost by Department</div>
-        <div class="chart-sub">Total cost breakdown per department</div>
-        <div class="chart-wrap"><canvas id="chart-dept"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-title">Cost Composition</div>
-        <div class="chart-sub">Manpower vs Equipment vs Border</div>
-        <div class="chart-wrap"><canvas id="chart-pie"></canvas></div>
-      </div>
+      <div class="chart-card"><div class="chart-title">Cost by Department</div><div class="chart-sub">Total cost breakdown per department</div><div class="chart-wrap"><canvas id="chart-dept"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title">Cost Composition</div><div class="chart-sub">Manpower vs Equipment vs Border</div><div class="chart-wrap"><canvas id="chart-pie"></canvas></div></div>
     </div>
-
-    <!-- DEPT SUMMARY TABLE -->
     <div class="table-card">
       <div class="table-title">Department Summary</div>
-      <div style="overflow-x:auto;">
-        <table class="data-table" id="dept-table">
-          <thead>
-            <tr>
-              <th>Department</th>
-              <th>Days Submitted</th>
-              <th>Avg Present</th>
-              <th>Manpower Cost (IQD)</th>
-              <th>Equipment Cost (IQD)</th>
-              <th>Border Cost (IQD)</th>
-              <th>Total (IQD)</th>
-              <th>Total (USD)</th>
-            </tr>
-          </thead>
-          <tbody id="dept-tbody"></tbody>
-        </table>
-      </div>
+      <div style="overflow-x:auto;"><table class="data-table"><thead><tr>
+        <th>Department</th><th>Days</th><th>Avg Present</th>
+        <th>Manpower (IQD)</th><th>Equipment (IQD)</th><th>Border (IQD)</th>
+        <th>Concrete (IQD)</th><th>Sub Base (IQD)</th><th>Total (IQD)</th><th>Total (USD)</th>
+      </tr></thead><tbody id="dept-tbody"></tbody></table></div>
     </div>
-
-    <!-- DAILY LOG TABLE -->
     <div class="table-card">
       <div class="table-title">Daily Submission Log</div>
-      <div style="overflow-x:auto;">
-        <table class="data-table" id="daily-table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Department</th>
-              <th>Present</th>
-              <th>Absent</th>
-              <th>Leave</th>
-              <th>Manpower (IQD)</th>
-              <th>Equipment (IQD)</th>
-              <th>Border (IQD)</th>
-              <th>Total (IQD)</th>
-              <th>Total (USD)</th>
-              <th>Submitted By</th>
-            </tr>
-          </thead>
-          <tbody id="daily-tbody"></tbody>
-        </table>
-      </div>
+      <div style="overflow-x:auto;"><table class="data-table"><thead><tr>
+        <th>Date</th><th>Dept</th><th>Present</th><th>Absent</th><th>Leave</th>
+        <th>Manpower</th><th>Equipment</th><th>Border</th><th>Concrete</th><th>Sub Base</th>
+        <th>Total (IQD)</th><th>Total (USD)</th><th>By</th>
+      </tr></thead><tbody id="daily-tbody"></tbody></table></div>
     </div>
-
   </div>
 </div>
 
 <script>
+// ── CONFIG ─────────────────────────────────────────────────────────────────────
+// IMPORTANT: This must be the non-workspace URL (no /a/macros/igccgroup-iq.com/)
+// Deploy the script as "Anyone" access to use this URL
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxcu0GJQKVtE2hVbYjixahHiAzcsie-Vmu8ELRIj5zSsIcZHlxhYAB-Zo-hgqIoyXHB/exec';
+const GOOGLE_CLIENT_ID = '392743906594-f4huq0l2hf3b71tpn5hh4eba5ftt9ti0.apps.googleusercontent.com';
+const ALLOWED_EMAILS   = ['mohammed.lateef@igccgroup-iq.com'];
 const DEPTS      = ['Civil','Mechanical','Electrical','HSE','QAQC','Planning'];
 const DEPT_COLORS= ['#0284c7','#16a34a','#f59e0b','#dc2626','#7c3aed','#0891b2'];
 
 let charts = {};
+let currentUser = null;
+let _usdRate = 1520;
 
-// ── INIT ──────────────────────────────────────────────────────────────────────
 const today = new Date();
 const pad   = n => String(n).padStart(2,'0');
 const d30   = new Date(today); d30.setDate(d30.getDate()-29);
 document.getElementById('date-from').value = `${d30.getFullYear()}-${pad(d30.getMonth()+1)}-${pad(d30.getDate())}`;
 document.getElementById('date-to').value   = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
 
-// ── LOAD ──────────────────────────────────────────────────────────────────────
+// ── DEBUG ──────────────────────────────────────────────────────────────────────
 function dbg(msg) {
   const p = document.getElementById('debug-panel');
-  if (p) { p.style.display='block'; p.textContent += new Date().toLocaleTimeString()+' '+msg+'\n'; }
+  if (p) { p.style.display='block'; p.textContent += new Date().toLocaleTimeString()+' '+msg+'\n'; p.scrollTop=p.scrollHeight; }
   console.log(msg);
 }
 
-async function loadDashboard() {
-  document.getElementById('loading').style.display='block';
-  document.getElementById('dashboard-content').style.display='none';
-  const dp = document.getElementById('debug-panel');
-  if (dp) { dp.textContent=''; dp.style.display='block'; }
-
-  const from = document.getElementById('date-from').value;
-  const to   = document.getElementById('date-to').value;
-  const dept = document.getElementById('dept-filter').value;
-
-  let data = [];
-  let loaded = false;
-
-    // Use JSONP to bypass CORS on workspace Apps Script URL
-  try {
-    const url = SCRIPT_URL + '?action=get_dashboard&from=' + from + '&to=' + to + '&callback=__dashCB';
-    dbg('JSONP: '+url.substring(0,80)+'...');
-    const result = await new Promise((resolve, reject) => {
-      const timeout = setTimeout(()=>{ delete window.__dashCB; reject(new Error('Timeout 10s')); }, 10000);
-      window.__dashCB = function(json) { clearTimeout(timeout); delete window.__dashCB; resolve(json); };
-      const s = document.createElement('script');
-      s.src = url;
-      s.onerror = ()=>{ clearTimeout(timeout); delete window.__dashCB; reject(new Error('Script load failed')); };
-      document.head.appendChild(s);
-    });
-    if (result && result.status==='ok' && result.data) {
-      data = result.data; loaded = true;
-      dbg('✓ Real data: '+data.length+' rows');
-    } else {
-      dbg('No data in response: '+JSON.stringify(result).substring(0,100));
-    }
-  } catch(e) {
-    dbg('✗ JSONP failed: '+e.message);
-  }
-
-  dbg('After fetch: loaded='+loaded+' rows='+data.length);
-  if (dept && data.length) data = data.filter(r=>r['Department']===dept);
-
-  if (data.length === 0 && !loaded) {
-    // No real data — show demo with label
-    data = getDemoData();
-    document.getElementById('last-updated').textContent = 'Demo data (no submissions yet)'; dbg('→ Showing DEMO data');
-  } else if (data.length === 0 && loaded) {
-    document.getElementById('last-updated').textContent = 'No data for selected period';
-  }
-
-  renderDashboard(data);
-
-  document.getElementById('loading').style.display='none';
-  document.getElementById('dashboard-content').style.display='block';
-  if (loaded && data.length > 0) {
-    document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-GB') + ' · ' + data.length + ' records';
-  }
-}
-
-// ── RENDER ────────────────────────────────────────────────────────────────────
-function renderDashboard(data) {
-  if (!data.length) { renderEmpty(); return; }
-
-  // Totals
-  const totalMP  = sum(data,'Manpower Cost (IQD)');
-  const totalEQ  = sum(data,'Equipment Cost (IQD)');
-  const totalBRD = sum(data,'Border Cost (IQD)');
-  const totalAll = sum(data,'Total Cost (IQD)');
-  const avgUSD   = window._usdRate || avg(data.map(r=>parseFloat(r['USD Rate'])||1520));
-  const uniqueDays = new Set(data.map(r=>r['Date'])).size;
-
-  // KPIs
-  document.getElementById('kpi-total-iqd').textContent = fmtIQD(totalAll);
-  document.getElementById('kpi-total-usd').textContent = '$ ' + fmtN(totalAll/avgUSD);
-  document.getElementById('kpi-mp').textContent  = fmtIQD(totalMP);
-  document.getElementById('kpi-mp-pct').textContent = pct(totalMP,totalAll) + ' of total';
-  document.getElementById('kpi-eq').textContent  = fmtIQD(totalEQ);
-  document.getElementById('kpi-eq-pct').textContent = pct(totalEQ,totalAll) + ' of total';
-  document.getElementById('kpi-brd').textContent = fmtIQD(totalBRD);
-  document.getElementById('kpi-brd-pct').textContent = pct(totalBRD,totalAll) + ' of total';
-  document.getElementById('kpi-avg').textContent = uniqueDays>0?fmtIQD(totalAll/uniqueDays):'—';
-  document.getElementById('kpi-days').textContent = uniqueDays + ' days recorded';
-
-  // Daily trend chart
-  renderDailyChart(data);
-
-  // Dept breakdown
-  renderDeptChart(data);
-
-  // Pie chart
-  renderPieChart(totalMP, totalEQ, totalBRD);
-
-  // Tables
-  renderDeptTable(data, avgUSD);
-  renderDailyLog(data, avgUSD);
-}
-
-function renderDailyChart(data) {
-  // Group by date
-  const byDate = {};
-  data.forEach(r => {
-    const d = r['Date'];
-    if (!byDate[d]) byDate[d] = {mp:0,eq:0,brd:0};
-    byDate[d].mp  += parseFloat(r['Manpower Cost (IQD)'])||0;
-    byDate[d].eq  += parseFloat(r['Equipment Cost (IQD)'])||0;
-    byDate[d].brd += parseFloat(r['Border Cost (IQD)'])||0;
-  });
-  const labels = Object.keys(byDate).sort();
-  const mpData  = labels.map(d=>Math.round(byDate[d].mp/1e6*100)/100);
-  const eqData  = labels.map(d=>Math.round(byDate[d].eq/1e6*100)/100);
-  const brdData = labels.map(d=>Math.round(byDate[d].brd/1e6*100)/100);
-
-  destroyChart('chart-daily');
-  charts['chart-daily'] = new Chart(document.getElementById('chart-daily'), {
-    type:'bar',
-    data:{
-      labels,
-      datasets:[
-        {label:'Manpower (M IQD)',data:mpData,backgroundColor:'#0284c7',stack:'s'},
-        {label:'Equipment (M IQD)',data:eqData,backgroundColor:'#f59e0b',stack:'s'},
-        {label:'Border (M IQD)',data:brdData,backgroundColor:'#7c3aed',stack:'s'},
-      ]
-    },
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}},scales:{x:{stacked:true},y:{stacked:true,ticks:{callback:v=>v+'M'}}}}
-  });
-}
-
-function renderDeptChart(data) {
-  const byDept = {};
-  data.forEach(r => {
-    const d = r['Department'];
-    if (!byDept[d]) byDept[d] = 0;
-    byDept[d] += parseFloat(r['Total Cost (IQD)'])||0;
-  });
-  const labels = Object.keys(byDept);
-  const vals   = labels.map(d=>Math.round(byDept[d]/1e6*100)/100);
-  const colors = labels.map(d=>DEPT_COLORS[DEPTS.indexOf(d)]||'#64748b');
-
-  destroyChart('chart-dept');
-  charts['chart-dept'] = new Chart(document.getElementById('chart-dept'), {
-    type:'bar',
-    data:{labels,datasets:[{label:'Total Cost (M IQD)',data:vals,backgroundColor:colors,borderRadius:6}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v+'M'}}}}
-  });
-}
-
-function renderPieChart(mp,eq,brd) {
-  destroyChart('chart-pie');
-  charts['chart-pie'] = new Chart(document.getElementById('chart-pie'), {
-    type:'doughnut',
-    data:{
-      labels:['Manpower','Equipment','Border'],
-      datasets:[{data:[Math.round(mp/1e3),Math.round(eq/1e3),Math.round(brd/1e3)],backgroundColor:['#0284c7','#f59e0b','#7c3aed'],borderWidth:2,borderColor:'#fff'}]
-    },
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${fmtN(ctx.raw)}K IQD`}}}}
-  });
-}
-
-function renderDeptTable(data, usdRate) {
-  const byDept = {};
-  data.forEach(r => {
-    const d = r['Department'];
-    if (!byDept[d]) byDept[d] = {days:new Set(),present:0,mp:0,eq:0,brd:0,conc:0,sub:0,credit:0,total:0};
-    byDept[d].days.add(r['Date']);
-    byDept[d].present += parseFloat(r['Present'])||0;
-    byDept[d].mp     += parseFloat(r['Manpower Cost (IQD)'])||0;
-    byDept[d].eq     += parseFloat(r['Equipment Cost (IQD)'])||0;
-    byDept[d].brd    += parseFloat(r['Border Cost (IQD)'])||0;
-    byDept[d].conc   += parseFloat(r['Concrete Cost (IQD)'])||0;
-    byDept[d].sub    += parseFloat(r['Sub Base Cost (IQD)'])||0;
-    byDept[d].credit += parseFloat(r['Credit Notes (IQD)'])||0;
-    byDept[d].total  += parseFloat(r['Total Cost (IQD)'])||0;
-  });
-  document.getElementById('dept-tbody').innerHTML = Object.entries(byDept)
-    .sort((a,b)=>b[1].total-a[1].total)
-    .map(([dept,v])=>`<tr>
-      <td><span class="pill pill-blue">${dept}</span></td>
-      <td class="mono">${v.days.size}</td>
-      <td class="mono">${v.days.size>0?Math.round(v.present/v.days.size):0}</td>
-      <td class="mono">${fmtIQD(v.mp)}</td>
-      <td class="mono">${fmtIQD(v.eq)}</td>
-      <td class="mono">${fmtIQD(v.brd)}</td>
-      <td class="mono" style="font-weight:700;">${fmtIQD(v.total)}</td>
-      <td class="mono">$ ${fmtN(v.total/usdRate)}</td>
-    </tr>`).join('');
-}
-
-function renderDailyLog(data, usdRate) {
-  const sorted = [...data].sort((a,b)=>b['Date'].localeCompare(a['Date']));
-  document.getElementById('daily-tbody').innerHTML = sorted.slice(0,100).map(r=>`<tr>
-    <td class="mono">${r['Date']}</td>
-    <td><span class="pill pill-blue">${r['Department']}</span></td>
-    <td class="mono" style="color:var(--success);">${r['Present']}</td>
-    <td class="mono" style="color:var(--danger);">${r['Absent']}</td>
-    <td class="mono" style="color:var(--warning);">${r['Leave']}</td>
-    <td class="mono">${fmtIQD(parseFloat(r['Manpower Cost (IQD)'])||0)}</td>
-    <td class="mono">${fmtIQD(parseFloat(r['Equipment Cost (IQD)'])||0)}</td>
-    <td class="mono">${fmtIQD(parseFloat(r['Border Cost (IQD)'])||0)}</td>
-    <td class="mono" style="font-weight:700;">${fmtIQD(parseFloat(r['Total Cost (IQD)'])||0)}</td>
-    <td class="mono">$ ${fmtN((parseFloat(r['Total Cost (IQD)'])||0)/usdRate)}</td>
-    <td style="color:var(--muted);font-size:12px;">${r['Submitted By']||'—'}</td>
-  </tr>`).join('');
-}
-
-function renderEmpty() {
-  document.getElementById('dept-tbody').innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--muted);">No data for selected period</td></tr>';
-  document.getElementById('daily-tbody').innerHTML = '<tr><td colspan="11" style="text-align:center;padding:20px;color:var(--muted);">No submissions yet</td></tr>';
-}
-
-// ── HELPERS ───────────────────────────────────────────────────────────────────
-function sum(data, col) { return data.reduce((s,r)=>s+(parseFloat(r[col])||0),0); }
-function avg(arr)       { return arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:1310; }
-function fmtIQD(n)      { return 'IQD ' + Math.round(n).toLocaleString(); }
-function fmtN(n)        { return Math.round(n).toLocaleString(); }
-function pct(n,total)   { return total?Math.round(n/total*100)+'%':'0%'; }
-function destroyChart(id){ if(charts[id]){charts[id].destroy();delete charts[id];} }
-
-// ── DEMO DATA (when script not connected) ────────────────────────────────────
-function getDemoData() {
-  const depts = ['Civil','Mechanical','Electrical','HSE','QAQC','Planning'];
-  const rows  = [];
-  for (let i=29;i>=0;i--) {
-    const d    = new Date(); d.setDate(d.getDate()-i);
-    const date = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-    depts.forEach(dept => {
-      if (Math.random()>0.2) {
-        const mp  = Math.round((Math.random()*5+3)*1e6);
-        const eq  = Math.round((Math.random()*2+0.5)*1e6);
-        const brd = Math.round((Math.random()*1+0.3)*1e6);
-        rows.push({'Date':date,'Department':dept,'Present':Math.round(Math.random()*8+5),'Absent':Math.round(Math.random()*2),'Leave':Math.round(Math.random()*2),'Off':'0','Manpower Cost (IQD)':mp,'Equipment Cost (IQD)':eq,'Border Cost (IQD)':brd,'Total Cost (IQD)':mp+eq+brd,'Total Cost (USD)':Math.round((mp+eq+brd)/1310),'USD Rate':'1310','Submitted By':'Demo'});
-      }
-    });
-  }
-  return rows;
-}
-
-// ── AUTH ──────────────────────────────────────────────────────────────────────
-const GOOGLE_CLIENT_ID = '392743906594-f4huq0l2hf3b71tpn5hh4eba5ftt9ti0.apps.googleusercontent.com';
-const ALLOWED_EMAILS   = ['mohammed.lateef@igccgroup-iq.com'];
-let currentUser = null;
-
+// ── AUTH ───────────────────────────────────────────────────────────────────────
 function initAuth() {
   const saved = sessionStorage.getItem('igcc_dash_user');
   if (saved) {
@@ -514,13 +189,12 @@ function initAuth() {
     sessionStorage.removeItem('igcc_dash_user');
   }
   google.accounts.id.initialize({ client_id:GOOGLE_CLIENT_ID, callback:handleCredential, auto_select:false });
-  google.accounts.id.renderButton(document.getElementById('google-signin-btn'),
-    { theme:'outline', size:'large', width:320, text:'signin_with' });
+  google.accounts.id.renderButton(document.getElementById('google-signin-btn'), { theme:'outline', size:'large', width:320 });
   document.getElementById('auth-screen').style.display = 'flex';
 }
 
 function handleCredential(response) {
-  const p   = parseJwt(response.credential);
+  const p     = parseJwt(response.credential);
   const email = (p.email||'').toLowerCase();
   if (ALLOWED_EMAILS.includes(email)) {
     currentUser = { name:p.name, email:p.email };
@@ -540,8 +214,219 @@ function showApp() {
 function signOut() { sessionStorage.removeItem('igcc_dash_user'); location.reload(); }
 function parseJwt(token) { return JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))); }
 
-// ── BOOT ──────────────────────────────────────────────────────────────────────
-window.addEventListener('load', function() { setTimeout(initAuth, 300); });
+// ── LOAD DASHBOARD ─────────────────────────────────────────────────────────────
+async function loadDashboard() {
+  document.getElementById('loading').style.display='block';
+  document.getElementById('dashboard-content').style.display='none';
+  document.getElementById('debug-panel').textContent='';
+
+  const from = document.getElementById('date-from').value;
+  const to   = document.getElementById('date-to').value;
+  const dept = document.getElementById('dept-filter').value;
+
+  let data = [], loaded = false;
+
+  // JSONP call — works with Apps Script deployed as "Anyone"
+  try {
+    const cbName = '__dashCB_' + Date.now();
+    const url    = SCRIPT_URL + '?action=get_dashboard&from=' + from + '&to=' + to + '&callback=' + cbName;
+    dbg('Calling: ' + url.substring(0,100) + '...');
+
+    const result = await new Promise((resolve, reject) => {
+      const t = setTimeout(() => { delete window[cbName]; reject(new Error('Timeout — check script deployment')); }, 12000);
+      window[cbName] = function(json) { clearTimeout(t); delete window[cbName]; resolve(json); };
+      const s = document.createElement('script');
+      s.src = url;
+      s.onerror = () => { clearTimeout(t); delete window[cbName]; reject(new Error('Script blocked — deploy as Anyone')); };
+      document.head.appendChild(s);
+      setTimeout(() => { try { document.head.removeChild(s); } catch(e) {} }, 13000);
+    });
+
+    dbg('Response: ' + JSON.stringify(result).substring(0, 150));
+    if (result && result.status === 'ok') {
+      data = result.data || [];
+      loaded = true;
+      dbg('✓ Loaded ' + data.length + ' rows');
+    }
+  } catch(e) {
+    dbg('✗ Failed: ' + e.message);
+    dbg('→ Make sure script is deployed as "Anyone" not "igccgroup-iq.com only"');
+  }
+
+  // Update USD rate from data
+  if (data.length > 0) {
+    const rates = data.map(r => parseFloat(r['USD Rate'])||1520).filter(Boolean);
+    _usdRate = rates.length ? Math.round(rates.reduce((a,b)=>a+b)/rates.length) : 1520;
+    document.getElementById('usd-label').textContent = '1 USD = ' + _usdRate.toLocaleString() + ' IQD';
+  }
+
+  if (dept) data = data.filter(r => r['Department'] === dept);
+
+  if (!loaded || data.length === 0) {
+    if (!loaded) dbg('→ Showing demo data');
+    data = loaded ? data : getDemoData();
+  }
+
+  renderDashboard(data);
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('dashboard-content').style.display = 'block';
+  document.getElementById('last-updated').textContent = loaded
+    ? 'Updated ' + new Date().toLocaleTimeString('en-GB') + (data.length ? ' · ' + data.length + ' records' : '')
+    : '⚠ Demo data — deploy script as Anyone';
+}
+
+// ── RENDER ─────────────────────────────────────────────────────────────────────
+function renderDashboard(data) {
+  if (!data.length) { renderEmpty(); return; }
+  const totalMP  = sum(data,'Manpower Cost (IQD)');
+  const totalEQ  = sum(data,'Equipment Cost (IQD)');
+  const totalBRD = sum(data,'Border Cost (IQD)');
+  const totalCONC= sum(data,'Concrete Cost (IQD)');
+  const totalSUB = sum(data,'Sub Base Cost (IQD)');
+  const totalAll = sum(data,'Total Cost (IQD)');
+  const uniqueDays = new Set(data.map(r=>r['Date'])).size;
+
+  document.getElementById('kpi-total-iqd').textContent = fmtIQD(totalAll);
+  document.getElementById('kpi-total-usd').textContent = '$ ' + fmtN(totalAll/_usdRate);
+  document.getElementById('kpi-mp').textContent  = fmtIQD(totalMP);
+  document.getElementById('kpi-mp-pct').textContent = pct(totalMP,totalAll) + ' of total';
+  document.getElementById('kpi-eq').textContent  = fmtIQD(totalEQ);
+  document.getElementById('kpi-eq-pct').textContent = pct(totalEQ,totalAll) + ' of total';
+  document.getElementById('kpi-brd').textContent = fmtIQD(totalBRD);
+  document.getElementById('kpi-brd-pct').textContent = pct(totalBRD,totalAll) + ' of total';
+  document.getElementById('kpi-avg').textContent = uniqueDays>0 ? fmtIQD(totalAll/uniqueDays) : '—';
+  document.getElementById('kpi-days').textContent = uniqueDays + ' days recorded';
+
+  renderDailyChart(data);
+  renderDeptChart(data);
+  renderPieChart(totalMP, totalEQ, totalBRD, totalCONC, totalSUB);
+  renderDeptTable(data);
+  renderDailyLog(data);
+}
+
+function renderDailyChart(data) {
+  const byDate = {};
+  data.forEach(r => {
+    const d = r['Date'];
+    if (!byDate[d]) byDate[d] = {mp:0,eq:0,brd:0,conc:0,sub:0};
+    byDate[d].mp   += parseFloat(r['Manpower Cost (IQD)'])||0;
+    byDate[d].eq   += parseFloat(r['Equipment Cost (IQD)'])||0;
+    byDate[d].brd  += parseFloat(r['Border Cost (IQD)'])||0;
+    byDate[d].conc += parseFloat(r['Concrete Cost (IQD)'])||0;
+    byDate[d].sub  += parseFloat(r['Sub Base Cost (IQD)'])||0;
+  });
+  const labels = Object.keys(byDate).sort();
+  destroyChart('chart-daily');
+  charts['chart-daily'] = new Chart(document.getElementById('chart-daily'), {
+    type:'bar',
+    data:{ labels, datasets:[
+      {label:'Manpower',  data:labels.map(d=>Math.round(byDate[d].mp/1e6*100)/100),  backgroundColor:'#0284c7', stack:'s'},
+      {label:'Equipment', data:labels.map(d=>Math.round(byDate[d].eq/1e6*100)/100),  backgroundColor:'#f59e0b', stack:'s'},
+      {label:'Border',    data:labels.map(d=>Math.round(byDate[d].brd/1e6*100)/100), backgroundColor:'#7c3aed', stack:'s'},
+      {label:'Concrete',  data:labels.map(d=>Math.round(byDate[d].conc/1e6*100)/100),backgroundColor:'#16a34a', stack:'s'},
+      {label:'Sub Base',  data:labels.map(d=>Math.round(byDate[d].sub/1e6*100)/100), backgroundColor:'#ef4444', stack:'s'},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}},scales:{x:{stacked:true},y:{stacked:true,ticks:{callback:v=>v+'M IQD'}}}}
+  });
+}
+
+function renderDeptChart(data) {
+  const byDept={};
+  data.forEach(r=>{const d=r['Department'];if(!byDept[d])byDept[d]=0;byDept[d]+=parseFloat(r['Total Cost (IQD)'])||0;});
+  const labels=Object.keys(byDept);
+  destroyChart('chart-dept');
+  charts['chart-dept'] = new Chart(document.getElementById('chart-dept'),{
+    type:'bar',
+    data:{labels,datasets:[{label:'Total Cost (M IQD)',data:labels.map(d=>Math.round(byDept[d]/1e6*100)/100),backgroundColor:labels.map(d=>DEPT_COLORS[DEPTS.indexOf(d)]||'#64748b'),borderRadius:6}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v+'M'}}}}
+  });
+}
+
+function renderPieChart(mp,eq,brd,conc,sub) {
+  destroyChart('chart-pie');
+  charts['chart-pie'] = new Chart(document.getElementById('chart-pie'),{
+    type:'doughnut',
+    data:{labels:['Manpower','Equipment','Border','Concrete','Sub Base'],
+      datasets:[{data:[mp,eq,brd,conc,sub].map(v=>Math.round(v/1e3)),backgroundColor:['#0284c7','#f59e0b','#7c3aed','#16a34a','#ef4444'],borderWidth:2,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${fmtN(ctx.raw)}K IQD`}}}}
+  });
+}
+
+function renderDeptTable(data) {
+  const byDept={};
+  data.forEach(r=>{
+    const d=r['Department'];
+    if(!byDept[d])byDept[d]={days:new Set(),present:0,mp:0,eq:0,brd:0,conc:0,sub:0,total:0};
+    byDept[d].days.add(r['Date']);
+    byDept[d].present+=parseFloat(r['Present'])||0;
+    byDept[d].mp    +=parseFloat(r['Manpower Cost (IQD)'])||0;
+    byDept[d].eq    +=parseFloat(r['Equipment Cost (IQD)'])||0;
+    byDept[d].brd   +=parseFloat(r['Border Cost (IQD)'])||0;
+    byDept[d].conc  +=parseFloat(r['Concrete Cost (IQD)'])||0;
+    byDept[d].sub   +=parseFloat(r['Sub Base Cost (IQD)'])||0;
+    byDept[d].total +=parseFloat(r['Total Cost (IQD)'])||0;
+  });
+  document.getElementById('dept-tbody').innerHTML = Object.entries(byDept)
+    .sort((a,b)=>b[1].total-a[1].total)
+    .map(([dept,v])=>`<tr>
+      <td><span class="pill pill-blue">${dept}</span></td>
+      <td class="mono">${v.days.size}</td>
+      <td class="mono">${v.days.size?Math.round(v.present/v.days.size):0}</td>
+      <td class="mono">${fmtIQD(v.mp)}</td><td class="mono">${fmtIQD(v.eq)}</td>
+      <td class="mono">${fmtIQD(v.brd)}</td><td class="mono">${fmtIQD(v.conc)}</td>
+      <td class="mono">${fmtIQD(v.sub)}</td>
+      <td class="mono" style="font-weight:700;">${fmtIQD(v.total)}</td>
+      <td class="mono">$ ${fmtN(v.total/_usdRate)}</td>
+    </tr>`).join('');
+}
+
+function renderDailyLog(data) {
+  document.getElementById('daily-tbody').innerHTML = [...data]
+    .sort((a,b)=>b['Date'].localeCompare(a['Date'])).slice(0,100)
+    .map(r=>`<tr>
+      <td class="mono">${r['Date']}</td>
+      <td><span class="pill pill-blue">${r['Department']}</span></td>
+      <td class="mono" style="color:var(--success);">${r['Present']}</td>
+      <td class="mono" style="color:var(--danger);">${r['Absent']}</td>
+      <td class="mono" style="color:var(--warning);">${r['Leave']}</td>
+      <td class="mono">${fmtIQD(parseFloat(r['Manpower Cost (IQD)'])||0)}</td>
+      <td class="mono">${fmtIQD(parseFloat(r['Equipment Cost (IQD)'])||0)}</td>
+      <td class="mono">${fmtIQD(parseFloat(r['Border Cost (IQD)'])||0)}</td>
+      <td class="mono">${fmtIQD(parseFloat(r['Concrete Cost (IQD)'])||0)}</td>
+      <td class="mono">${fmtIQD(parseFloat(r['Sub Base Cost (IQD)'])||0)}</td>
+      <td class="mono" style="font-weight:700;">${fmtIQD(parseFloat(r['Total Cost (IQD)'])||0)}</td>
+      <td class="mono">$ ${fmtN((parseFloat(r['Total Cost (IQD)'])||0)/_usdRate)}</td>
+      <td style="color:var(--muted);font-size:12px;">${r['Submitted By']||'—'}</td>
+    </tr>`).join('');
+}
+
+function renderEmpty() {
+  document.getElementById('dept-tbody').innerHTML  = '<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--muted);">No data for selected period</td></tr>';
+  document.getElementById('daily-tbody').innerHTML = '<tr><td colspan="13" style="text-align:center;padding:20px;color:var(--muted);">No submissions yet</td></tr>';
+}
+
+function sum(data,col){return data.reduce((s,r)=>s+(parseFloat(r[col])||0),0);}
+function fmtIQD(n){return 'IQD '+Math.round(n).toLocaleString();}
+function fmtN(n){return Math.round(n).toLocaleString();}
+function pct(n,t){return t?Math.round(n/t*100)+'%':'0%';}
+function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+
+function getDemoData() {
+  const rows=[];
+  for(let i=29;i>=0;i--){
+    const d=new Date(); d.setDate(d.getDate()-i);
+    const date=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    DEPTS.forEach(dept=>{
+      if(Math.random()>.3){
+        const mp=Math.round((Math.random()*5+3)*1e6), eq=Math.round((Math.random()*2+.5)*1e6), brd=Math.round((Math.random()*.5+.1)*1e6);
+        rows.push({'Date':date,'Department':dept,'Present':Math.round(Math.random()*8+5),'Absent':Math.round(Math.random()*2),'Leave':Math.round(Math.random()*2),'Off':0,'Manpower Cost (IQD)':mp,'Equipment Cost (IQD)':eq,'Border Cost (IQD)':brd,'Concrete Cost (IQD)':0,'Sub Base Cost (IQD)':0,'Total Cost (IQD)':mp+eq+brd,'USD Rate':1520,'Submitted By':'Demo'});
+      }
+    });
+  }
+  return rows;
+}
+
+window.addEventListener('load', ()=>setTimeout(initAuth,300));
 </script>
 </body>
 </html>
