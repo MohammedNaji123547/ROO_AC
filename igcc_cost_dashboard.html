@@ -68,6 +68,21 @@ input[type=date],select{background:#fff;border:1.5px solid var(--border);border-
 .debug{background:#1e293b;color:#a3e635;font-family:monospace;font-size:11px;padding:12px 16px;border-radius:8px;margin-bottom:16px;white-space:pre-wrap;max-height:150px;overflow-y:auto;line-height:1.6;}
 @media(max-width:900px){.kpi-grid{grid-template-columns:repeat(3,1fr);}.chart-grid{grid-template-columns:1fr;}.chart-card.full{grid-column:span 1;}}
 @media(max-width:600px){.kpi-grid{grid-template-columns:1fr 1fr;}}
+.det-tab{background:#fff;border:1.5px solid var(--border);border-radius:8px;color:var(--muted);cursor:pointer;font-family:var(--sans);font-size:12px;font-weight:500;padding:6px 12px;transition:all .15s;}
+.det-tab:hover{border-color:var(--blue);color:var(--blue);}
+.det-tab.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+.att-table{border-collapse:collapse;font-size:12px;white-space:nowrap;}
+.att-table th{background:#0f172a;color:#fff;padding:7px 10px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;text-align:center;position:sticky;top:0;}
+.att-table th.emp-col{text-align:left;min-width:160px;position:sticky;left:0;z-index:2;background:#0f172a;}
+.att-table td{padding:6px 10px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);text-align:center;font-family:var(--mono);font-size:11px;}
+.att-table td.emp-cell{text-align:left;font-family:var(--sans);font-size:12px;font-weight:500;position:sticky;left:0;background:#fff;border-right:2px solid var(--border);min-width:160px;}
+.att-table tr:hover td{background:rgba(2,132,199,.04);}
+.att-table tr:hover td.emp-cell{background:rgba(2,132,199,.04);}
+.status-P{color:var(--success);font-weight:700;}
+.status-A{color:var(--danger);}
+.status-L{color:var(--warning);}
+.status-O{color:var(--muted);}
+.status-{color:#e2e8f0;}
 </style>
 </head>
 <body>
@@ -147,6 +162,22 @@ input[type=date],select{background:#fff;border:1.5px solid var(--border);border-
         <th>Manpower</th><th>Equipment</th><th>Border</th><th>Concrete</th><th>Sub Base</th>
         <th>Total (IQD)</th><th>Total (USD)</th><th>By</th>
       </tr></thead><tbody id="daily-tbody"></tbody></table></div>
+    </div>
+
+    <!-- ═══ DETAIL TABS ═══ -->
+    <div class="table-card" style="margin-bottom:0;">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+        <span style="font-size:12px;font-weight:600;color:var(--label);text-transform:uppercase;letter-spacing:.06em;">Detail Logs:</span>
+        <button class="det-tab active" onclick="loadDetail('attendance',this)">👷 Attendance</button>
+        <button class="det-tab" onclick="loadDetail('equipment',this)">🚜 Equipment</button>
+        <button class="det-tab" onclick="loadDetail('border',this)">🏗 Border</button>
+        <button class="det-tab" onclick="loadDetail('concrete',this)">🧱 Concrete</button>
+        <button class="det-tab" onclick="loadDetail('subbase',this)">🪨 Sub Base</button>
+        <button class="det-tab" onclick="loadDetail('procurement',this)">📦 Procurement</button>
+        <button class="det-tab" onclick="loadDetail('credit',this)">📋 Credit Notes</button>
+      </div>
+      <div id="detail-loading" style="text-align:center;padding:30px;color:var(--muted);display:none;"><div class="spinner" style="margin:0 auto 10px;"></div>Loading...</div>
+      <div id="detail-content" style="overflow-x:auto;"></div>
     </div>
   </div>
 </div>
@@ -270,6 +301,8 @@ async function loadDashboard() {
   renderDashboard(data);
   document.getElementById('loading').style.display = 'none';
   document.getElementById('dashboard-content').style.display = 'block';
+  // Auto-load attendance detail
+  loadDetail('attendance', document.querySelector('.det-tab.active'));
   document.getElementById('last-updated').textContent = loaded
     ? 'Updated ' + new Date().toLocaleTimeString('en-GB') + (data.length ? ' · ' + data.length + ' records' : '')
     : '⚠ Demo data — deploy script as Anyone';
@@ -427,6 +460,191 @@ function getDemoData() {
 }
 
 window.addEventListener('load', ()=>setTimeout(initAuth,300));
+
+// ── DETAIL LOG LOADER ─────────────────────────────────────────────────────────
+let currentDetailType = 'attendance';
+
+function loadDetail(type, btn) {
+  currentDetailType = type;
+  document.querySelectorAll('.det-tab').forEach(t=>t.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.getElementById('detail-loading').style.display='block';
+  document.getElementById('detail-content').innerHTML='';
+
+  const from = document.getElementById('date-from').value;
+  const to   = document.getElementById('date-to').value;
+  const dept = document.getElementById('dept-filter').value;
+  const cbName = '__detCB_' + Date.now();
+  const url  = SCRIPT_URL + '?action=get_' + type + '&from=' + from + '&to=' + to + (dept?'&dept='+dept:'') + '&callback=' + cbName;
+
+  new Promise((resolve,reject) => {
+    const t = setTimeout(()=>{delete window[cbName];reject(new Error('Timeout'));},12000);
+    window[cbName] = json => { clearTimeout(t); delete window[cbName]; resolve(json); };
+    const s = document.createElement('script');
+    s.src = url;
+    s.onerror = ()=>{ clearTimeout(t); delete window[cbName]; reject(new Error('Load failed')); };
+    document.head.appendChild(s);
+  }).then(json => {
+    document.getElementById('detail-loading').style.display='none';
+    if (json.status==='ok') {
+      if (type==='attendance') renderAttendanceMatrix(json.data);
+      else renderGenericTable(json.data, json.headers, type);
+    } else {
+      document.getElementById('detail-content').innerHTML='<p style="color:var(--danger);padding:16px;">Error: '+json.message+'</p>';
+    }
+  }).catch(e => {
+    document.getElementById('detail-loading').style.display='none';
+    document.getElementById('detail-content').innerHTML='<p style="color:var(--muted);padding:16px;">Could not load data: '+e.message+'</p>';
+  });
+}
+
+// ── ATTENDANCE MATRIX ─────────────────────────────────────────────────────────
+function renderAttendanceMatrix(data) {
+  if (!data.length) {
+    document.getElementById('detail-content').innerHTML='<p style="color:var(--muted);padding:20px;">No attendance data for selected period.</p>';
+    return;
+  }
+
+  // Get unique sorted dates and unique employees
+  const dates = [...new Set(data.map(r=>r['Date']))].sort();
+  const empMap = {}; // empId -> {name, dept, position}
+  data.forEach(r=>{
+    const id = r['Employee ID'];
+    if (!empMap[id]) empMap[id] = { name:r['Full Name']||r['Name']||id, dept:r['Department'], pos:r['Position']||'' };
+  });
+
+  // Build status lookup: empId+date -> status
+  const statusMap = {};
+  data.forEach(r=>{
+    const key = (r['Employee ID']||'') + '|' + r['Date'];
+    // Keep the latest entry (last submitted)
+    statusMap[key] = r['Status']||'';
+  });
+
+  // Group employees by dept
+  const byDept = {};
+  Object.entries(empMap).forEach(([id,e])=>{
+    if (!byDept[e.dept]) byDept[e.dept]=[]; byDept[e.dept].push({id,...e});
+  });
+
+  // Summary per employee
+  const empSummary = {};
+  Object.keys(empMap).forEach(id=>{
+    let p=0,a=0,l=0,o=0;
+    dates.forEach(d=>{ const s=statusMap[id+'|'+d]||''; if(s==='present')p++; else if(s==='absent')a++; else if(s==='leave')l++; else if(s==='off')o++; });
+    empSummary[id]={p,a,l,o};
+  });
+
+  const statusIcon = s => {
+    if (s==='present') return '<span class="status-P">✓</span>';
+    if (s==='absent')  return '<span class="status-A">✗</span>';
+    if (s==='leave')   return '<span class="status-L">L</span>';
+    if (s==='off')     return '<span class="status-O">O</span>';
+    return '<span class="status-">—</span>';
+  };
+
+  const shortDate = d => { const p=d.split('-'); return p[2]+'/'+p[1]; };
+
+  let html = '<table class="att-table">';
+  // Header row
+  html += '<thead><tr>';
+  html += '<th class="emp-col">Employee</th>';
+  html += '<th class="emp-col" style="min-width:70px;left:160px;">Dept</th>';
+  dates.forEach(d=>{ html += '<th style="min-width:46px;">'+shortDate(d)+'</th>'; });
+  html += '<th style="background:#16a34a;min-width:40px;">P</th>';
+  html += '<th style="background:#dc2626;min-width:40px;">A</th>';
+  html += '<th style="background:#d97706;min-width:40px;">L</th>';
+  html += '</tr></thead><tbody>';
+
+  // Sort depts then employees
+  const deptOrder = ['Civil','Mechanical','Electrical','HSE','QAQC','Planning'];
+  const sortedDepts = Object.keys(byDept).sort((a,b)=>deptOrder.indexOf(a)-deptOrder.indexOf(b));
+
+  sortedDepts.forEach(dept=>{
+    const emps = byDept[dept];
+    emps.forEach((e,i)=>{
+      html += '<tr>';
+      html += '<td class="emp-cell">' + (e.name||e.id) + '<div style="font-size:10px;color:var(--muted);font-family:var(--mono);">'+e.id+'</div></td>';
+      html += '<td class="emp-cell" style="left:160px;min-width:70px;font-size:11px;color:var(--muted);">'+dept+'</td>';
+      dates.forEach(d=>{
+        const s = statusMap[e.id+'|'+d]||'';
+        html += '<td>' + statusIcon(s) + '</td>';
+      });
+      const sm = empSummary[e.id];
+      html += '<td style="font-weight:700;color:var(--success);">' + sm.p + '</td>';
+      html += '<td style="font-weight:700;color:var(--danger);">'  + sm.a + '</td>';
+      html += '<td style="font-weight:700;color:var(--warning);">' + sm.l + '</td>';
+      html += '</tr>';
+    });
+  });
+
+  html += '</tbody></table>';
+  html += '<div style="margin-top:10px;font-size:11px;color:var(--muted);display:flex;gap:16px;">'
+        + '<span><span class="status-P">✓</span> Present</span>'
+        + '<span><span class="status-A">✗</span> Absent</span>'
+        + '<span><span class="status-L">L</span> Leave</span>'
+        + '<span><span class="status-O">O</span> Day Off</span>'
+        + '<span>— No data</span>'
+        + '<span style="margin-left:auto;font-weight:600;">P=Present · A=Absent · L=Leave totals</span></div>';
+
+  document.getElementById('detail-content').innerHTML = html;
+}
+
+// ── GENERIC TABLE RENDERER ────────────────────────────────────────────────────
+function renderGenericTable(data, headers, type) {
+  if (!data.length) {
+    document.getElementById('detail-content').innerHTML='<p style="color:var(--muted);padding:20px;">No data for selected period.</p>';
+    return;
+  }
+
+  // Column display config per type
+  const colConfig = {
+    equipment:   ['Date','Department','Equipment Type','Description','CTR #','Quantity','Unit','Unit Rate (IQD)','Total Cost (IQD)','Submitted By'],
+    border:      ['Date','Department','Type','CTR #','Count','Rate (IQD)','Total (IQD)','Submitted By'],
+    concrete:    ['Date','Department','Concrete Type','QTY (m³)','Unit Price (IQD)','Total (IQD)','CTR #','Submitted By'],
+    subbase:     ['Date','Department','Description','QTY (ton)','Unit Price (IQD)','Total (IQD)','CTR #','Submitted By'],
+    procurement: ['Date','Department','Receiving Date','Item Name','ROP #','PO #','PO Amount (IQD)','CTR #','Notes','PO Updated At','Submitted By'],
+    credit:      ['Date','Department','Asset Name','Unit Price (IQD)','QTY','Total (IQD)','Submitted By'],
+  };
+
+  const cols = colConfig[type] || (headers||[]);
+  const costCols = new Set(['Unit Rate (IQD)','Total Cost (IQD)','Total (IQD)','Unit Price (IQD)','PO Amount (IQD)','Rate (IQD)']);
+  const numCols  = new Set(['Quantity','QTY (m³)','QTY (ton)','Count']);
+
+  let html = '<table class="data-table"><thead><tr>';
+  cols.forEach(c=>{ html += '<th>'+c+'</th>'; });
+  html += '</tr></thead><tbody>';
+
+  // Sort by date desc
+  const sorted = [...data].sort((a,b)=>(b['Date']||'').localeCompare(a['Date']||''));
+  sorted.forEach(r=>{
+    html += '<tr>';
+    cols.forEach(c=>{
+      const v = r[c]||'';
+      let cell = v;
+      if (costCols.has(c) && v && !isNaN(parseFloat(v))) cell = fmtIQD(parseFloat(v));
+      else if (numCols.has(c) && v) cell = parseFloat(v).toLocaleString();
+      else if (c==='CTR #' && v) cell = '<span class="pill pill-blue">'+v+'</span>';
+      else if (c==='Department' && v) cell = '<span class="pill pill-blue">'+v+'</span>';
+      const isMono = costCols.has(c)||numCols.has(c)||(c==='ROP #')||(c==='PO #')||(c==='Employee ID');
+      html += '<td'+(isMono?' class="mono"':'')+'>'+cell+'</td>';
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+
+  // Add total row for cost columns
+  const totalable = cols.filter(c=>costCols.has(c));
+  if (totalable.length) {
+    const totals = {};
+    totalable.forEach(c=>{ totals[c]=data.reduce((s,r)=>s+(parseFloat(r[c])||0),0); });
+    html += '<div style="margin-top:10px;display:flex;gap:16px;flex-wrap:wrap;">';
+    totalable.forEach(c=>{ html += '<div style="font-size:12px;"><span style="color:var(--muted);">'+c+':</span> <strong>'+fmtIQD(totals[c])+'</strong></div>'; });
+    html += '</div>';
+  }
+
+  document.getElementById('detail-content').innerHTML = html;
+}
 </script>
 </body>
 </html>
