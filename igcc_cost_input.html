@@ -1109,29 +1109,54 @@ function submitDaily() {
     submittedAt:new Date().toISOString(),
   };
 
-  document.getElementById('btn-submit').disabled=true;
-  document.getElementById('btn-submit').textContent='Submitting...';
-  fireFF(payload);
+  const btn = document.getElementById('btn-submit');
+  btn.disabled = true;
+  btn.textContent = '⟳ Submitting...';
+  btn.style.background = 'var(--blue)';
 
-  setTimeout(()=>{
-    const banner=document.getElementById('success-banner');
-    banner.classList.add('show');
-    banner.scrollIntoView({behavior:'smooth',block:'start'});
-    document.getElementById('success-detail').textContent=`${dept} · ${date} · ${Object.values(empStatus).filter(e=>e.status==='present').length} present`;
-    document.getElementById('btn-submit').disabled=false;
-    document.getElementById('btn-submit').textContent='✓ Submit Daily Report';
-  },800);
+  try {
+    const res = await fireFF(payload);
+    if (res && res.status === 'ok') {
+      const banner = document.getElementById('success-banner');
+      banner.classList.add('show');
+      banner.scrollIntoView({behavior:'smooth', block:'start'});
+      document.getElementById('success-detail').textContent =
+        `${dept} · ${date} · ${Object.values(empStatus).filter(e=>e.status==='present').length} present · Saved ✓`;
+      btn.textContent = '✓ Submit Daily Report';
+      btn.style.background = '';
+    } else if (res && res.status === 'error') {
+      alert('Submission failed: ' + (res.message||'Unknown error') + '\n\nPlease try again.');
+      btn.textContent = '✓ Submit Daily Report';
+      btn.style.background = '';
+    } else if (res && res.status === 'timeout') {
+      // Timeout — data may or may not have saved
+      alert('Request timed out. Please check the Google Sheet to confirm your data was saved, then resubmit if needed.');
+      btn.textContent = '✓ Submit Daily Report';
+      btn.style.background = '';
+    }
+  } catch(e) {
+    alert('Submission error: ' + e.message);
+    btn.textContent = '✓ Submit Daily Report';
+    btn.style.background = '';
+  } finally {
+    btn.disabled = false;
+  }
 }
 
-function fireFF(data) {
-  if(!SCRIPT_URL||SCRIPT_URL==='YOUR_COST_SCRIPT_URL'){console.log('Cost payload:',data);return;}
-  try{
-    const img=document.createElement('img');
-    img.src=SCRIPT_URL+'?payload='+encodeURIComponent(JSON.stringify(data));
+async function fireFF(data) {
+  if(!SCRIPT_URL||SCRIPT_URL==='YOUR_COST_SCRIPT_URL'){console.log('Cost payload:',data);return {status:'ok'};}
+  // Use JSONP so we get a real confirmation back
+  return new Promise((resolve) => {
+    const cbName = '__costCB_' + Date.now();
+    const url    = SCRIPT_URL + '?payload=' + encodeURIComponent(JSON.stringify({...data, callback:cbName}));
+    const timeout= setTimeout(()=>{ delete window[cbName]; resolve({status:'timeout'}); }, 180000);
+    window[cbName] = function(res) { clearTimeout(timeout); delete window[cbName]; resolve(res); };
+    const img = document.createElement('img');
+    img.src   = url;
     img.style.display='none';
     document.body.appendChild(img);
-    img.onload=img.onerror=()=>{try{document.body.removeChild(img);}catch(e){}};
-  }catch(e){console.error(e);}
+    img.onload=img.onerror=()=>{ try{document.body.removeChild(img);}catch(e){}  };
+  });
 }
 
 // ── ACCESS CONTROL ───────────────────────────────────────────────────────────
@@ -1144,6 +1169,7 @@ const ALLOWED_EMAILS   = [
    'haider.almesaody@igccgroup.com',
    'mohamad.latef16@gmail.com',
 ];
+
 
 let currentUser = null;
 
