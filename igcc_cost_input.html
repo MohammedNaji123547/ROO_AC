@@ -990,7 +990,7 @@ function getUSDRate(){ return parseFloat(document.getElementById('usd-rate').val
 function updateHeader(){ const d=new Date(document.getElementById('inp-date').value); document.getElementById('date-badge').textContent=d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'}); }
 
 // ── SUBMIT ────────────────────────────────────────────────────────────────────
-function submitDaily() {
+async function submitDaily() {
   const date   =document.getElementById('inp-date').value;
   const by     =document.getElementById('inp-by').value.trim();
   const usdRate=getUSDRate();
@@ -1109,29 +1109,46 @@ function submitDaily() {
     submittedAt:new Date().toISOString(),
   };
 
-  document.getElementById('btn-submit').disabled=true;
-  document.getElementById('btn-submit').textContent='Submitting...';
-  fireFF(payload);
+  const btn = document.getElementById('btn-submit');
+  btn.disabled = true;
+  btn.textContent = '⟳ Submitting...';
+  btn.style.background = 'var(--blue)';
 
-  setTimeout(()=>{
-    const banner=document.getElementById('success-banner');
-    banner.classList.add('show');
-    banner.scrollIntoView({behavior:'smooth',block:'start'});
-    document.getElementById('success-detail').textContent=`${dept} · ${date} · ${Object.values(empStatus).filter(e=>e.status==='present').length} present`;
-    document.getElementById('btn-submit').disabled=false;
-    document.getElementById('btn-submit').textContent='✓ Submit Daily Report';
-  },800);
+  try {
+    const res = await fireFF(payload);
+    if (res && res.status === 'ok') {
+      const banner = document.getElementById('success-banner');
+      banner.classList.add('show');
+      banner.scrollIntoView({behavior:'smooth', block:'start'});
+      document.getElementById('success-detail').textContent =
+        `${dept} · ${date} · ${Object.values(empStatus).filter(e=>e.status==='present').length} present · Saved ✓`;
+    } else if (res && res.status === 'timeout') {
+      alert('Request timed out after 180s. Please check the Google Sheet to confirm your data was saved.');
+    } else if (res && res.status === 'error') {
+      alert('Submission failed: ' + (res.message||'Unknown error') + '\n\nPlease try again.');
+    }
+  } catch(e) {
+    alert('Submission error: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✓ Submit Daily Report';
+    btn.style.background = '';
+  }
 }
 
-function fireFF(data) {
-  if(!SCRIPT_URL||SCRIPT_URL==='YOUR_COST_SCRIPT_URL'){console.log('Cost payload:',data);return;}
-  try{
-    const img=document.createElement('img');
-    img.src=SCRIPT_URL+'?payload='+encodeURIComponent(JSON.stringify(data));
+async function fireFF(data) {
+  if(!SCRIPT_URL||SCRIPT_URL==='YOUR_COST_SCRIPT_URL'){console.log('Cost payload:',data);return {status:'ok'};}
+  return new Promise((resolve) => {
+    const cbName = '__costCB_' + Date.now();
+    const payload = {...data, callback:cbName};
+    const timeout = setTimeout(()=>{ delete window[cbName]; resolve({status:'timeout'}); }, 180000);
+    window[cbName] = function(res) { clearTimeout(timeout); delete window[cbName]; resolve(res); };
+    const img = document.createElement('img');
+    img.src = SCRIPT_URL+'?payload='+encodeURIComponent(JSON.stringify(payload));
     img.style.display='none';
     document.body.appendChild(img);
     img.onload=img.onerror=()=>{try{document.body.removeChild(img);}catch(e){}};
-  }catch(e){console.error(e);}
+  });
 }
 
 // ── ACCESS CONTROL ───────────────────────────────────────────────────────────
@@ -1144,6 +1161,7 @@ const ALLOWED_EMAILS   = [
    'haider.almesaody@igccgroup.com',
    'mohamad.latef16@gmail.com',
 ];
+
 
 let currentUser = null;
 
