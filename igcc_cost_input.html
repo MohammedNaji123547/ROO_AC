@@ -121,6 +121,10 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
 .auth-name{font-size:13px;font-weight:600;color:var(--text);}
 .auth-email{font-size:11px;color:var(--muted);font-family:var(--mono);}
 .btn-signout{background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;font-family:var(--sans);font-size:12px;padding:6px 12px;position:absolute;top:14px;right:24px;}
+.auth-input{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:var(--sans);outline:none;margin-bottom:10px;transition:border-color .15s;}
+.auth-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(2,132,199,.1);}
+.auth-btn{width:100%;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--sans);}
+.auth-btn:hover{opacity:.85;}
 .btn-signout:hover{border-color:var(--danger);color:var(--danger);}
 @media(max-width:700px){.summary-bar{grid-template-columns:1fr 1fr;}.add-emp-grid{grid-template-columns:1fr 1fr;}.border-row{grid-template-columns:1fr;}}
 </style>
@@ -132,9 +136,9 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
   <div class="auth-card">
     <div class="auth-logo">IG</div>
     <div class="auth-title">IGCC Cost Input</div>
-    <div class="auth-sub">Sign in with your company Google account to access the daily cost input form.</div>
-    <div id="google-signin-btn" style="display:flex;justify-content:center;"></div>
-    <div class="auth-error" id="auth-error">Access denied — your email is not authorized. Contact mohammed.lateef@igccgroup-iq.com</div>
+    <div class="auth-sub">Sign in with your IGCC Google account to access the daily cost input form.</div>
+    <div id="google-signin-btn" style="display:flex;justify-content:center;min-height:44px;"></div>
+    <div class="auth-error" id="auth-error">Access denied — your email is not authorized.</div>
   </div>
 </div>
 
@@ -989,7 +993,7 @@ function getUSDRate(){ return parseFloat(document.getElementById('usd-rate').val
 function updateHeader(){ const d=new Date(document.getElementById('inp-date').value); document.getElementById('date-badge').textContent=d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'}); }
 
 // ── SUBMIT ────────────────────────────────────────────────────────────────────
-function submitDaily() {
+async function submitDaily() {
   const date   =document.getElementById('inp-date').value;
   const by     =document.getElementById('inp-by').value.trim();
   const usdRate=getUSDRate();
@@ -1169,106 +1173,56 @@ const ALLOWED_EMAILS   = [
    'mohamad.latef16@gmail.com',
 ];
 
-
 let currentUser = null;
 
 function initAuth() {
-  // Check session storage first
   const saved = sessionStorage.getItem('igcc_cost_user');
   if (saved) {
     try {
-      currentUser = JSON.parse(saved);
-      if (ALLOWED_EMAILS.includes(currentUser.email.toLowerCase())) {
-        showApp(currentUser);
-        return;
-      }
+      const u = JSON.parse(saved);
+      if (ALLOWED_EMAILS.includes(u.email.toLowerCase())) { showApp(u); return; }
     } catch(e) {}
     sessionStorage.removeItem('igcc_cost_user');
   }
-
-  // Show auth screen
   document.getElementById('auth-screen').style.display = 'flex';
-
-  // Initialize Google Sign-In button
-  try {
-    google.accounts.id.initialize({
-      client_id: GOOGLE_CLIENT_ID,
-      callback: handleCredential,
-      auto_select: false,
-    });
-    google.accounts.id.renderButton(
-      document.getElementById('google-signin-btn'),
-      { theme:'outline', size:'large', width:320, text:'signin_with', shape:'rectangular' }
-    );
-  } catch(e) {
-    console.error('GSI init error:', e);
-  }
+  google.accounts.id.initialize({ client_id:GOOGLE_CLIENT_ID, callback:handleCredential, auto_select:false });
+  google.accounts.id.renderButton(
+    document.getElementById('google-signin-btn'),
+    { theme:'outline', size:'large', width:300, text:'signin_with' }
+  );
 }
 
 function handleCredential(response) {
-  const payload = parseJwt(response.credential);
-  const email   = (payload.email||'').toLowerCase();
+  const p     = JSON.parse(atob(response.credential.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+  const email = (p.email||'').toLowerCase();
   if (ALLOWED_EMAILS.includes(email)) {
-    currentUser = { name:payload.name, email:payload.email, picture:payload.picture };
+    currentUser = { name:p.name, email:p.email };
     sessionStorage.setItem('igcc_cost_user', JSON.stringify(currentUser));
     showApp(currentUser);
   } else {
     document.getElementById('auth-error').classList.add('show');
-    google.accounts.id.disableAutoSelect();
   }
 }
 
 function showApp(user) {
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('btn-signout').classList.remove('hidden');
-  document.getElementById('inp-by').value = user.name || '';
+  document.getElementById('inp-by').value = user.name||'';
   loadMaster();
 }
 
-function manualLogin() {
-  const email = (document.getElementById('manual-email')?.value||'').trim().toLowerCase();
-  if (ALLOWED_EMAILS.includes(email)) {
-    currentUser = { name: email.split('@')[0], email: email };
-    sessionStorage.setItem('igcc_cost_user', JSON.stringify(currentUser));
-    showApp(currentUser);
-  } else {
-    document.getElementById('manual-error').style.display = 'block';
-  }
-}
-
-function signOut() {
-  sessionStorage.removeItem('igcc_cost_user');
-  currentUser = null;
-  location.reload();
-}
-
-function parseJwt(token) {
-  const base64 = token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
-  return JSON.parse(atob(base64));
-}
+function signOut() { sessionStorage.removeItem('igcc_cost_user'); location.reload(); }
 
 // ── BOOT ──────────────────────────────────────────────────────────────────────
 // Wait for Google GSI to load then init auth
 // Wait for GSI to be ready before initializing auth
-window.addEventListener('load', function() {
-  // Dynamically load GSI with onload callback
-  var gsiScript = document.createElement('script');
-  gsiScript.src = 'https://accounts.google.com/gsi/client';
-  gsiScript.onload = function() { initAuth(); };
-  gsiScript.onerror = function() {
-    // GSI failed to load — show manual email login fallback
-    document.getElementById('auth-screen').innerHTML =
-      '<div style="background:#fff;border-radius:16px;padding:44px 40px;max-width:400px;width:100%;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,.1);">' +
-      '<div style="background:#0f172a;color:#fff;font-family:monospace;font-size:18px;font-weight:700;width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;">IG</div>' +
-      '<div style="font-size:20px;font-weight:700;margin-bottom:6px;">IGCC Cost Input</div>' +
-      '<div style="font-size:13px;color:#64748b;margin-bottom:20px;">Enter your email to continue</div>' +
-      '<input type="email" id="manual-email" placeholder="your@igccgroup-iq.com" style="width:100%;padding:10px;border:1.5px solid #dde3ed;border-radius:8px;font-size:14px;margin-bottom:10px;">' +
-      '<button onclick="manualLogin()" style="width:100%;background:#0f172a;color:#fff;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;">Continue</button>' +
-      '<div id="manual-error" style="color:#dc2626;font-size:12px;margin-top:10px;display:none;">Access denied — email not authorized</div>' +
-      '</div>';
-  };
-  document.head.appendChild(gsiScript);
-});
+// Load GSI then init auth
+(function() {
+  var s = document.createElement('script');
+  s.src = 'https://accounts.google.com/gsi/client';
+  s.onload = initAuth;
+  document.head.appendChild(s);
+})();
 </script>
 </body>
 </html>
