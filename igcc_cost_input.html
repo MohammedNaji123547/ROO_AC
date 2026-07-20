@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IGCC — Daily Cost Input</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -121,10 +122,6 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
 .auth-name{font-size:13px;font-weight:600;color:var(--text);}
 .auth-email{font-size:11px;color:var(--muted);font-family:var(--mono);}
 .btn-signout{background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;font-family:var(--sans);font-size:12px;padding:6px 12px;position:absolute;top:14px;right:24px;}
-.auth-input{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:var(--sans);outline:none;margin-bottom:10px;transition:border-color .15s;}
-.auth-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(2,132,199,.1);}
-.auth-btn{width:100%;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--sans);}
-.auth-btn:hover{opacity:.85;}
 .btn-signout:hover{border-color:var(--danger);color:var(--danger);}
 @media(max-width:700px){.summary-bar{grid-template-columns:1fr 1fr;}.add-emp-grid{grid-template-columns:1fr 1fr;}.border-row{grid-template-columns:1fr;}}
 </style>
@@ -136,9 +133,9 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
   <div class="auth-card">
     <div class="auth-logo">IG</div>
     <div class="auth-title">IGCC Cost Input</div>
-    <div class="auth-sub">Sign in with your IGCC Google account to access the daily cost input form.</div>
-    <div id="google-signin-btn" style="display:flex;justify-content:center;min-height:44px;"></div>
-    <div class="auth-error" id="auth-error">Access denied — your email is not authorized.</div>
+    <div class="auth-sub">Sign in with your company Google account to access the daily cost input form.</div>
+    <div id="google-signin-btn" style="display:flex;justify-content:center;"></div>
+    <div class="auth-error" id="auth-error">Access denied — your email is not authorized. Contact mohammed.lateef@igccgroup-iq.com</div>
   </div>
 </div>
 
@@ -993,7 +990,7 @@ function getUSDRate(){ return parseFloat(document.getElementById('usd-rate').val
 function updateHeader(){ const d=new Date(document.getElementById('inp-date').value); document.getElementById('date-badge').textContent=d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'}); }
 
 // ── SUBMIT ────────────────────────────────────────────────────────────────────
-async function submitDaily() {
+function submitDaily() {
   const date   =document.getElementById('inp-date').value;
   const by     =document.getElementById('inp-by').value.trim();
   const usdRate=getUSDRate();
@@ -1112,54 +1109,29 @@ async function submitDaily() {
     submittedAt:new Date().toISOString(),
   };
 
-  const btn = document.getElementById('btn-submit');
-  btn.disabled = true;
-  btn.textContent = '⟳ Submitting...';
-  btn.style.background = 'var(--blue)';
+  document.getElementById('btn-submit').disabled=true;
+  document.getElementById('btn-submit').textContent='Submitting...';
+  fireFF(payload);
 
-  try {
-    const res = await fireFF(payload);
-    if (res && res.status === 'ok') {
-      const banner = document.getElementById('success-banner');
-      banner.classList.add('show');
-      banner.scrollIntoView({behavior:'smooth', block:'start'});
-      document.getElementById('success-detail').textContent =
-        `${dept} · ${date} · ${Object.values(empStatus).filter(e=>e.status==='present').length} present · Saved ✓`;
-      btn.textContent = '✓ Submit Daily Report';
-      btn.style.background = '';
-    } else if (res && res.status === 'error') {
-      alert('Submission failed: ' + (res.message||'Unknown error') + '\n\nPlease try again.');
-      btn.textContent = '✓ Submit Daily Report';
-      btn.style.background = '';
-    } else if (res && res.status === 'timeout') {
-      // Timeout — data may or may not have saved
-      alert('Request timed out. Please check the Google Sheet to confirm your data was saved, then resubmit if needed.');
-      btn.textContent = '✓ Submit Daily Report';
-      btn.style.background = '';
-    }
-  } catch(e) {
-    alert('Submission error: ' + e.message);
-    btn.textContent = '✓ Submit Daily Report';
-    btn.style.background = '';
-  } finally {
-    btn.disabled = false;
-  }
+  setTimeout(()=>{
+    const banner=document.getElementById('success-banner');
+    banner.classList.add('show');
+    banner.scrollIntoView({behavior:'smooth',block:'start'});
+    document.getElementById('success-detail').textContent=`${dept} · ${date} · ${Object.values(empStatus).filter(e=>e.status==='present').length} present`;
+    document.getElementById('btn-submit').disabled=false;
+    document.getElementById('btn-submit').textContent='✓ Submit Daily Report';
+  },800);
 }
 
-async function fireFF(data) {
-  if(!SCRIPT_URL||SCRIPT_URL==='YOUR_COST_SCRIPT_URL'){console.log('Cost payload:',data);return {status:'ok'};}
-  // Use JSONP so we get a real confirmation back
-  return new Promise((resolve) => {
-    const cbName = '__costCB_' + Date.now();
-    const url    = SCRIPT_URL + '?payload=' + encodeURIComponent(JSON.stringify({...data, callback:cbName}));
-    const timeout= setTimeout(()=>{ delete window[cbName]; resolve({status:'timeout'}); }, 180000);
-    window[cbName] = function(res) { clearTimeout(timeout); delete window[cbName]; resolve(res); };
-    const img = document.createElement('img');
-    img.src   = url;
+function fireFF(data) {
+  if(!SCRIPT_URL||SCRIPT_URL==='YOUR_COST_SCRIPT_URL'){console.log('Cost payload:',data);return;}
+  try{
+    const img=document.createElement('img');
+    img.src=SCRIPT_URL+'?payload='+encodeURIComponent(JSON.stringify(data));
     img.style.display='none';
     document.body.appendChild(img);
-    img.onload=img.onerror=()=>{ try{document.body.removeChild(img);}catch(e){}  };
-  });
+    img.onload=img.onerror=()=>{try{document.body.removeChild(img);}catch(e){}};
+  }catch(e){console.error(e);}
 }
 
 // ── ACCESS CONTROL ───────────────────────────────────────────────────────────
@@ -1176,53 +1148,72 @@ const ALLOWED_EMAILS   = [
 let currentUser = null;
 
 function initAuth() {
+  // Check session storage for existing login
   const saved = sessionStorage.getItem('igcc_cost_user');
   if (saved) {
     try {
-      const u = JSON.parse(saved);
-      if (ALLOWED_EMAILS.includes(u.email.toLowerCase())) { showApp(u); return; }
+      currentUser = JSON.parse(saved);
+      if (ALLOWED_EMAILS.includes(currentUser.email.toLowerCase())) {
+        showApp(currentUser);
+        return;
+      }
     } catch(e) {}
     sessionStorage.removeItem('igcc_cost_user');
   }
-  document.getElementById('auth-screen').style.display = 'flex';
-  google.accounts.id.initialize({ client_id:GOOGLE_CLIENT_ID, callback:handleCredential, auto_select:false });
+
+  // Initialize Google Sign-In
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: handleCredential,
+    auto_select: false,
+  });
   google.accounts.id.renderButton(
     document.getElementById('google-signin-btn'),
-    { theme:'outline', size:'large', width:300, text:'signin_with' }
+    { theme:'outline', size:'large', width:320, text:'signin_with', shape:'rectangular' }
   );
+  document.getElementById('auth-screen').style.display = 'flex';
 }
 
 function handleCredential(response) {
-  const p     = JSON.parse(atob(response.credential.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
-  const email = (p.email||'').toLowerCase();
+  const payload = parseJwt(response.credential);
+  const email   = (payload.email||'').toLowerCase();
   if (ALLOWED_EMAILS.includes(email)) {
-    currentUser = { name:p.name, email:p.email };
+    currentUser = { name:payload.name, email:payload.email, picture:payload.picture };
     sessionStorage.setItem('igcc_cost_user', JSON.stringify(currentUser));
     showApp(currentUser);
   } else {
     document.getElementById('auth-error').classList.add('show');
+    google.accounts.id.disableAutoSelect();
   }
 }
 
 function showApp(user) {
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('btn-signout').classList.remove('hidden');
-  document.getElementById('inp-by').value = user.name||'';
+  document.getElementById('inp-by').value = user.name || '';
   loadMaster();
 }
 
-function signOut() { sessionStorage.removeItem('igcc_cost_user'); location.reload(); }
+function signOut() {
+  sessionStorage.removeItem('igcc_cost_user');
+  currentUser = null;
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('btn-signout').classList.add('hidden');
+  google.accounts.id.disableAutoSelect();
+  location.reload();
+}
+
+function parseJwt(token) {
+  const base64 = token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+  return JSON.parse(atob(base64));
+}
 
 // ── BOOT ──────────────────────────────────────────────────────────────────────
 // Wait for Google GSI to load then init auth
-// Wait for GSI to be ready before initializing auth
-// Load GSI then init auth
-(function() {
-  var s = document.createElement('script');
-  s.src = 'https://accounts.google.com/gsi/client';
-  s.onload = initAuth;
-  document.head.appendChild(s);
-})();
+window.addEventListener('load', function() {
+  // Small delay to ensure GSI script loads
+  setTimeout(initAuth, 300);
+});
 </script>
 </body>
 </html>
