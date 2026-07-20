@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IGCC — Daily Cost Input</title>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://accounts.google.com/gsi/client" defer></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -1236,10 +1236,15 @@ function parseJwt(token) {
 
 // ── BOOT ──────────────────────────────────────────────────────────────────────
 // Wait for Google GSI to load then init auth
-window.addEventListener('load', function() {
-  // Small delay to ensure GSI script loads
-  setTimeout(initAuth, 300);
-});
+// Wait for GSI to be ready before initializing auth
+function waitForGSI() {
+  if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+    initAuth();
+  } else {
+    setTimeout(waitForGSI, 100);
+  }
+}
+window.addEventListener('load', function() { setTimeout(waitForGSI, 200); });
 </script>
 </body>
 </html>
