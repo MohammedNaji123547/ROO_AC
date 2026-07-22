@@ -345,7 +345,7 @@ async function loadDashboard() {
     if (!loaded) dbg('→ Showing demo data');
     data = loaded ? data : getDemoData();
   }
-
+  populateFilters(data);
   renderDashboard(data);
   document.getElementById('loading').style.display = 'none';
   document.getElementById('dashboard-content').style.display = 'block';
@@ -506,6 +506,34 @@ function getDemoData() {
   }
   return rows;
 }
+function populateFilters(data){
+
+  const ctrSelect = document.getElementById('ctr-filter');
+  const userSelect = document.getElementById('submitted-filter');
+
+
+  const ctrs = [...new Set(
+    data.map(r=>r['CTR #'])
+    .filter(x=>x)
+  )].sort();
+
+
+  const users = [...new Set(
+    data.map(r=>r['Submitted By'])
+    .filter(x=>x)
+  )].sort();
+
+
+  ctrSelect.innerHTML =
+    '<option value="">All CTRs</option>' +
+    ctrs.map(x=>`<option value="${x}">${x}</option>`).join('');
+
+
+  userSelect.innerHTML =
+    '<option value="">All Users</option>' +
+    users.map(x=>`<option value="${x}">${x}</option>`).join('');
+
+};
 
 window.addEventListener('load', ()=>setTimeout(initAuth,300));
 
