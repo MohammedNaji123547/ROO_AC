@@ -112,45 +112,60 @@ input[type=date],select{background:#fff;border:1.5px solid var(--border);border-
 </div>
 
 <div class="filter-bar">
-  <div class="filter-group"><span class="filter-label">From</span><input type="date" id="date-from"></div>
-  <div class="filter-group"><span class="filter-label">To</span><input type="date" id="date-to"></div>
+
+  <div class="filter-group">
+    <span class="filter-label">From</span>
+    <input type="date" id="date-from">
+  </div>
+
+  <div class="filter-group">
+    <span class="filter-label">To</span>
+    <input type="date" id="date-to">
+  </div>
+
   <div class="filter-group">
     <span class="filter-label">Department</span>
     <select id="dept-filter">
       <option value="">All departments</option>
-      <option>Civil</option><option>Mechanical</option><option>Electrical</option>
-      <option>HSE</option><option>QAQC</option><option>Planning</option>
+      <option>Civil</option>
+      <option>Mechanical</option>
+      <option>Electrical</option>
+      <option>HSE</option>
+      <option>QAQC</option>
+      <option>Planning</option>
     </select>
   </div>
+
+
+  <!-- NEW FILTER -->
+  <div class="filter-group">
+    <span class="filter-label">CTR #</span>
+    <select id="ctr-filter">
+      <option value="">All CTRs</option>
+    </select>
+  </div>
+
+
+  <!-- NEW FILTER -->
+  <div class="filter-group">
+    <span class="filter-label">Submitted By</span>
+    <select id="submitted-filter">
+      <option value="">All Users</option>
+    </select>
+  </div>
+
+
   <div class="filter-group">
     <span class="filter-label">USD Rate</span>
-    <span style="font-family:var(--mono);font-size:13px;color:var(--muted);" id="usd-label">1 USD = 1,520 IQD</span>
+    <span style="font-family:var(--mono);font-size:13px;color:var(--muted);" id="usd-label">
+      1 USD = 1,520 IQD
+    </span>
   </div>
-    <div class="filter-group">
-    <span class="filter-label">Submitted By</span>
-    <select id="submitter-filter" style="min-width:160px;" onchange="loadDashboard()">
-      <option value="">All submitters</option>
-    </select>
-  </div>
-  <div class="filter-group">
-    <span class="filter-label">CTR #</span>
-    <select id="ctr-filter" style="min-width:130px;" onchange="loadDetail(currentDetailType,document.querySelector('.det-tab.active'))">
-      <option value="">All CTRs</option>
-    </select>
-  </div>
-  <div class="filter-group">
-    <span class="filter-label">Submitted By</span>
-    <select id="submitter-filter" style="min-width:160px;" onchange="applyFiltersAndRefresh()">
-      <option value="">All submitters</option>
-    </select>
-  </div>
-  <div class="filter-group">
-    <span class="filter-label">CTR #</span>
-    <select id="ctr-filter" style="min-width:130px;" onchange="applyFiltersAndRefresh()">
-      <option value="">All CTRs</option>
-    </select>
-  </div>
-  <button class="btn-refresh" onclick="loadDashboard()">↻ Refresh</button>
+
+  <button class="btn-refresh" onclick="loadDashboard()">
+    ↻ Refresh
+  </button>
+
 </div>
 
 <div class="container">
@@ -212,13 +227,20 @@ input[type=date],select{background:#fff;border:1.5px solid var(--border);border-
 // Deploy the script as "Anyone" access to use this URL
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxcu0GJQKVtE2hVbYjixahHiAzcsie-Vmu8ELRIj5zSsIcZHlxhYAB-Zo-hgqIoyXHB/exec';
 const GOOGLE_CLIENT_ID = '392743906594-f4huq0l2hf3b71tpn5hh4eba5ftt9ti0.apps.googleusercontent.com';
-const ALLOWED_EMAILS   = ['mohammed.lateef@igccgroup-iq.com'];
+const ALLOWED_EMAILS   = [
+  'mohammed.lateef@igccgroup-iq.com',
+  // Add more emails below:
+   'ahmed.hussein@igccgroup-iq.com',
+   'Mohammed.hassony@igccgroup-iq.com',
+   'saman.shaker@igccgroup.com',
+];
 const DEPTS      = ['Civil','Mechanical','Electrical','HSE','QAQC','Planning'];
 const DEPT_COLORS= ['#0284c7','#16a34a','#f59e0b','#dc2626','#7c3aed','#0891b2'];
 
 let charts = {};
 let currentUser = null;
 let _usdRate = 1520;
+let allDashboardData = [];
 
 const today = new Date();
 const pad   = n => String(n).padStart(2,'0');
@@ -278,6 +300,8 @@ async function loadDashboard() {
   const from = document.getElementById('date-from').value;
   const to   = document.getElementById('date-to').value;
   const dept = document.getElementById('dept-filter').value;
+  const ctr  = document.getElementById('ctr-filter').value;
+  const submittedBy = document.getElementById('submitted-filter').value;
 
   let data = [], loaded = false;
 
@@ -315,34 +339,12 @@ async function loadDashboard() {
     document.getElementById('usd-label').textContent = '1 USD = ' + _usdRate.toLocaleString() + ' IQD';
   }
 
-  const allData = [...data];
   if (dept) data = data.filter(r => r['Department'] === dept);
-
-  // Populate submitter dropdown
-  const submitters = [...new Set(allData.map(r=>r['Submitted By']||'').filter(Boolean))].sort();
-  const subSel = document.getElementById('submitter-filter');
-  const subCur = subSel.value;
-  subSel.innerHTML = '<option value="">All submitters</option>' +
-    submitters.map(s=>`<option value="${s}"${s===subCur?' selected':''}>${s}</option>`).join('');
-
-  // Apply submitter filter
-  const submitter = subSel.value;
-  if (submitter) data = data.filter(r => (r['Submitted By']||'') === submitter);
 
   if (!loaded || data.length === 0) {
     if (!loaded) dbg('→ Showing demo data');
     data = loaded ? data : getDemoData();
   }
-
-  // Populate Submitted By dropdown from loaded data
-  const allSubmitters = [...new Set(data.map(r=>r['Submitted By']||'').filter(Boolean))].sort();
-  const subSel = document.getElementById('submitter-filter');
-  const subCur = subSel.value;
-  subSel.innerHTML = '<option value="">All submitters</option>' +
-    allSubmitters.map(s=>`<option value="${s}"${s===subCur?' selected':''}>${s}</option>`).join('');
-
-  // Apply Submitted By filter
-  if (subCur) data = data.filter(r=>(r['Submitted By']||'')===subCur);
 
   renderDashboard(data);
   document.getElementById('loading').style.display = 'none';
@@ -533,19 +535,8 @@ function loadDetail(type, btn) {
   }).then(json => {
     document.getElementById('detail-loading').style.display='none';
     if (json.status==='ok') {
-      // Populate CTR dropdown from detail data
-      if (json.data && json.data.length) {
-        const ctrs = [...new Set(json.data.map(r=>r['CTR #']||'').filter(Boolean))].sort();
-        const ctrSel = document.getElementById('ctr-filter');
-        const ctrCur = ctrSel.value;
-        ctrSel.innerHTML = '<option value="">All CTRs</option>' +
-          ctrs.map(c=>`<option value="${c}"${c===ctrCur?' selected':''}>${c}</option>`).join('');
-      }
-      // Apply CTR filter
-      const ctrVal = document.getElementById('ctr-filter').value;
-      const filtered = ctrVal ? json.data.filter(r=>(r['CTR #']||'')===ctrVal) : json.data;
-      if (type==='attendance') renderAttendanceMatrix(filtered);
-      else renderGenericTable(filtered, json.headers, type);
+      if (type==='attendance') renderAttendanceMatrix(json.data);
+      else renderGenericTable(json.data, json.headers, type);
     } else {
       document.getElementById('detail-content').innerHTML='<p style="color:var(--danger);padding:16px;">Error: '+json.message+'</p>';
     }
