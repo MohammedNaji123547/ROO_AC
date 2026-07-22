@@ -91,15 +91,9 @@ input[type=date],select{background:#fff;border:1.5px solid var(--border);border-
   <div class="auth-card">
     <div class="auth-logo">IG</div>
     <div class="auth-title">IGCC Cost Dashboard</div>
-    <div class="auth-sub">Enter your email and access code to continue.</div>
-    <input type="email" id="auth-email" class="auth-input" placeholder="your@igccgroup-iq.com"
-      onkeydown="if(event.key==='Enter')document.getElementById('auth-pass').focus()"
-      style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:var(--sans);outline:none;margin-bottom:10px;">
-    <input type="password" id="auth-pass" class="auth-input" placeholder="Access code"
-      onkeydown="if(event.key==='Enter')doLogin()"
-      style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:var(--sans);outline:none;margin-bottom:10px;">
-    <button onclick="doLogin()" style="width:100%;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--sans);">Access Dashboard →</button>
-    <div class="auth-error" id="auth-error">Invalid email or access code.</div>
+    <div class="auth-sub">Sign in with your IGCC Google account to access the cost control dashboard.</div>
+    <div id="google-signin-btn" style="display:flex;justify-content:center;"></div>
+    <div class="auth-error" id="auth-error">Access denied — your email is not authorized.</div>
   </div>
 </div>
 
@@ -131,30 +125,6 @@ input[type=date],select{background:#fff;border:1.5px solid var(--border);border-
   <div class="filter-group">
     <span class="filter-label">USD Rate</span>
     <span style="font-family:var(--mono);font-size:13px;color:var(--muted);" id="usd-label">1 USD = 1,520 IQD</span>
-  </div>
-    <div class="filter-group">
-    <span class="filter-label">Submitted By</span>
-    <select id="submitter-filter" style="min-width:160px;" onchange="loadDashboard()">
-      <option value="">All submitters</option>
-    </select>
-  </div>
-  <div class="filter-group">
-    <span class="filter-label">CTR #</span>
-    <select id="ctr-filter" style="min-width:130px;" onchange="loadDetail(currentDetailType,document.querySelector('.det-tab.active'))">
-      <option value="">All CTRs</option>
-    </select>
-  </div>
-  <div class="filter-group">
-    <span class="filter-label">Submitted By</span>
-    <select id="submitter-filter" style="min-width:160px;" onchange="applyFiltersAndRefresh()">
-      <option value="">All submitters</option>
-    </select>
-  </div>
-  <div class="filter-group">
-    <span class="filter-label">CTR #</span>
-    <select id="ctr-filter" style="min-width:130px;" onchange="applyFiltersAndRefresh()">
-      <option value="">All CTRs</option>
-    </select>
   </div>
   <button class="btn-refresh" onclick="loadDashboard()">↻ Refresh</button>
 </div>
@@ -218,7 +188,13 @@ input[type=date],select{background:#fff;border:1.5px solid var(--border);border-
 // Deploy the script as "Anyone" access to use this URL
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxcu0GJQKVtE2hVbYjixahHiAzcsie-Vmu8ELRIj5zSsIcZHlxhYAB-Zo-hgqIoyXHB/exec';
 const GOOGLE_CLIENT_ID = '392743906594-f4huq0l2hf3b71tpn5hh4eba5ftt9ti0.apps.googleusercontent.com';
-const ALLOWED_EMAILS   = ['mohammed.lateef@igccgroup-iq.com'];
+const ALLOWED_EMAILS   = [
+  'mohammed.lateef@igccgroup-iq.com',
+  // Add more emails below:
+   'ahmed.hussein@igccgroup-iq.com',
+   'Mohammed.hassony@igccgroup-iq.com',
+   'saman.shaker@igccgroup.com',
+];
 const DEPTS      = ['Civil','Mechanical','Electrical','HSE','QAQC','Planning'];
 const DEPT_COLORS= ['#0284c7','#16a34a','#f59e0b','#dc2626','#7c3aed','#0891b2'];
 
@@ -240,12 +216,6 @@ function dbg(msg) {
 }
 
 // ── AUTH ───────────────────────────────────────────────────────────────────────
-const GOOGLE_CLIENT_ID = '392743906594-f4huq0l2hf3b71tpn5hh4eba5ftt9ti0.apps.googleusercontent.com';
-const ALLOWED_EMAILS   = [
-  'mohammed.lateef@igccgroup-iq.com',
-];
-let currentUser = null;
-
 function initAuth() {
   const saved = sessionStorage.getItem('igcc_dash_user');
   if (saved) {
@@ -327,34 +297,12 @@ async function loadDashboard() {
     document.getElementById('usd-label').textContent = '1 USD = ' + _usdRate.toLocaleString() + ' IQD';
   }
 
-  const allData = [...data];
   if (dept) data = data.filter(r => r['Department'] === dept);
-
-  // Populate submitter dropdown
-  const submitters = [...new Set(allData.map(r=>r['Submitted By']||'').filter(Boolean))].sort();
-  const subSel = document.getElementById('submitter-filter');
-  const subCur = subSel.value;
-  subSel.innerHTML = '<option value="">All submitters</option>' +
-    submitters.map(s=>`<option value="${s}"${s===subCur?' selected':''}>${s}</option>`).join('');
-
-  // Apply submitter filter
-  const submitter = subSel.value;
-  if (submitter) data = data.filter(r => (r['Submitted By']||'') === submitter);
 
   if (!loaded || data.length === 0) {
     if (!loaded) dbg('→ Showing demo data');
     data = loaded ? data : getDemoData();
   }
-
-  // Populate Submitted By dropdown from loaded data
-  const allSubmitters = [...new Set(data.map(r=>r['Submitted By']||'').filter(Boolean))].sort();
-  const subSel = document.getElementById('submitter-filter');
-  const subCur = subSel.value;
-  subSel.innerHTML = '<option value="">All submitters</option>' +
-    allSubmitters.map(s=>`<option value="${s}"${s===subCur?' selected':''}>${s}</option>`).join('');
-
-  // Apply Submitted By filter
-  if (subCur) data = data.filter(r=>(r['Submitted By']||'')===subCur);
 
   renderDashboard(data);
   document.getElementById('loading').style.display = 'none';
@@ -517,12 +465,7 @@ function getDemoData() {
   return rows;
 }
 
-(function() {
-  var s = document.createElement('script');
-  s.src = 'https://accounts.google.com/gsi/client';
-  s.onload = initAuth;
-  document.head.appendChild(s);
-})();
+window.addEventListener('load', ()=>setTimeout(initAuth,300));
 
 // ── DETAIL LOG LOADER ─────────────────────────────────────────────────────────
 let currentDetailType = 'attendance';
@@ -550,19 +493,8 @@ function loadDetail(type, btn) {
   }).then(json => {
     document.getElementById('detail-loading').style.display='none';
     if (json.status==='ok') {
-      // Populate CTR dropdown from detail data
-      if (json.data && json.data.length) {
-        const ctrs = [...new Set(json.data.map(r=>r['CTR #']||'').filter(Boolean))].sort();
-        const ctrSel = document.getElementById('ctr-filter');
-        const ctrCur = ctrSel.value;
-        ctrSel.innerHTML = '<option value="">All CTRs</option>' +
-          ctrs.map(c=>`<option value="${c}"${c===ctrCur?' selected':''}>${c}</option>`).join('');
-      }
-      // Apply CTR filter
-      const ctrVal = document.getElementById('ctr-filter').value;
-      const filtered = ctrVal ? json.data.filter(r=>(r['CTR #']||'')===ctrVal) : json.data;
-      if (type==='attendance') renderAttendanceMatrix(filtered);
-      else renderGenericTable(filtered, json.headers, type);
+      if (type==='attendance') renderAttendanceMatrix(json.data);
+      else renderGenericTable(json.data, json.headers, type);
     } else {
       document.getElementById('detail-content').innerHTML='<p style="color:var(--danger);padding:16px;">Error: '+json.message+'</p>';
     }
