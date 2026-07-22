@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IGCC — Cost Control Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -91,9 +90,15 @@ input[type=date],select{background:#fff;border:1.5px solid var(--border);border-
   <div class="auth-card">
     <div class="auth-logo">IG</div>
     <div class="auth-title">IGCC Cost Dashboard</div>
-    <div class="auth-sub">Sign in with your IGCC Google account to access the cost control dashboard.</div>
-    <div id="google-signin-btn" style="display:flex;justify-content:center;"></div>
-    <div class="auth-error" id="auth-error">Access denied — your email is not authorized.</div>
+    <div class="auth-sub">Enter your email and access code to continue.</div>
+    <input type="email" id="auth-email" class="auth-input" placeholder="your@igccgroup-iq.com"
+      onkeydown="if(event.key==='Enter')document.getElementById('auth-pass').focus()"
+      style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:var(--sans);outline:none;margin-bottom:10px;">
+    <input type="password" id="auth-pass" class="auth-input" placeholder="Access code"
+      onkeydown="if(event.key==='Enter')doLogin()"
+      style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:var(--sans);outline:none;margin-bottom:10px;">
+    <button onclick="doLogin()" style="width:100%;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--sans);">Access Dashboard →</button>
+    <div class="auth-error" id="auth-error">Invalid email or access code.</div>
   </div>
 </div>
 
@@ -125,6 +130,18 @@ input[type=date],select{background:#fff;border:1.5px solid var(--border);border-
   <div class="filter-group">
     <span class="filter-label">USD Rate</span>
     <span style="font-family:var(--mono);font-size:13px;color:var(--muted);" id="usd-label">1 USD = 1,520 IQD</span>
+  </div>
+    <div class="filter-group">
+    <span class="filter-label">Submitted By</span>
+    <select id="submitter-filter" style="min-width:160px;" onchange="loadDashboard()">
+      <option value="">All submitters</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">CTR #</span>
+    <select id="ctr-filter" style="min-width:130px;" onchange="loadDetail(currentDetailType,document.querySelector('.det-tab.active'))">
+      <option value="">All CTRs</option>
+    </select>
   </div>
   <button class="btn-refresh" onclick="loadDashboard()">↻ Refresh</button>
 </div>
@@ -192,9 +209,11 @@ const ALLOWED_EMAILS   = [
   'mohammed.lateef@igccgroup-iq.com',
   // Add more emails below:
    'ahmed.hussein@igccgroup-iq.com',
-   'Mohammed.hassony@igccgroup-iq.com',
-   'saman.shaker@igccgroup.com',
+   'mohammed.hassony@igccgroup-iq.com',
+   'haider.almesaody@igccgroup.com',
+   'mohamad.latef16@gmail.com',
 ];
+
 const DEPTS      = ['Civil','Mechanical','Electrical','HSE','QAQC','Planning'];
 const DEPT_COLORS= ['#0284c7','#16a34a','#f59e0b','#dc2626','#7c3aed','#0891b2'];
 
@@ -215,41 +234,43 @@ function dbg(msg) {
   console.log(msg);
 }
 
-// ── AUTH ───────────────────────────────────────────────────────────────────────
-function initAuth() {
-  const saved = sessionStorage.getItem('igcc_dash_user');
-  if (saved) {
-    try {
-      currentUser = JSON.parse(saved);
-      if (ALLOWED_EMAILS.includes(currentUser.email.toLowerCase())) { showApp(); return; }
-    } catch(e) {}
-    sessionStorage.removeItem('igcc_dash_user');
-  }
-  google.accounts.id.initialize({ client_id:GOOGLE_CLIENT_ID, callback:handleCredential, auto_select:false });
-  google.accounts.id.renderButton(document.getElementById('google-signin-btn'), { theme:'outline', size:'large', width:320 });
-  document.getElementById('auth-screen').style.display = 'flex';
-}
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+const ACCESS_LIST = {
+  'mohammed.lateef@igccgroup-iq.com': 'IGCC2026',
+};
+let currentUser = null;
 
-function handleCredential(response) {
-  const p     = parseJwt(response.credential);
-  const email = (p.email||'').toLowerCase();
-  if (ALLOWED_EMAILS.includes(email)) {
-    currentUser = { name:p.name, email:p.email };
+function doLogin() {
+  const email = (document.getElementById('auth-email').value||'').trim().toLowerCase();
+  const pass  = (document.getElementById('auth-pass').value||'').trim();
+  if (ACCESS_LIST[email] && ACCESS_LIST[email] === pass) {
+    currentUser = { name: email.split('@')[0].replace('.',' '), email };
     sessionStorage.setItem('igcc_dash_user', JSON.stringify(currentUser));
     showApp();
   } else {
     document.getElementById('auth-error').classList.add('show');
+    document.getElementById('auth-pass').value='';
+    document.getElementById('auth-pass').focus();
   }
 }
-
 function showApp() {
-  document.getElementById('auth-screen').style.display = 'none';
-  document.getElementById('btn-signout').style.display = 'block';
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('btn-signout').style.display='block';
   loadDashboard();
 }
-
 function signOut() { sessionStorage.removeItem('igcc_dash_user'); location.reload(); }
-function parseJwt(token) { return JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))); }
+function initAuth() {
+  const saved = sessionStorage.getItem('igcc_dash_user');
+  if (saved) {
+    try {
+      const user = JSON.parse(saved);
+      if (ACCESS_LIST[user.email.toLowerCase()]) { currentUser=user; showApp(); return; }
+    } catch(e) {}
+    sessionStorage.removeItem('igcc_dash_user');
+  }
+  document.getElementById('auth-screen').style.display='flex';
+  setTimeout(()=>document.getElementById('auth-email').focus(), 100);
+}
 
 // ── LOAD DASHBOARD ─────────────────────────────────────────────────────────────
 async function loadDashboard() {
@@ -297,7 +318,19 @@ async function loadDashboard() {
     document.getElementById('usd-label').textContent = '1 USD = ' + _usdRate.toLocaleString() + ' IQD';
   }
 
+  const allData = [...data];
   if (dept) data = data.filter(r => r['Department'] === dept);
+
+  // Populate submitter dropdown
+  const submitters = [...new Set(allData.map(r=>r['Submitted By']||'').filter(Boolean))].sort();
+  const subSel = document.getElementById('submitter-filter');
+  const subCur = subSel.value;
+  subSel.innerHTML = '<option value="">All submitters</option>' +
+    submitters.map(s=>`<option value="${s}"${s===subCur?' selected':''}>${s}</option>`).join('');
+
+  // Apply submitter filter
+  const submitter = subSel.value;
+  if (submitter) data = data.filter(r => (r['Submitted By']||'') === submitter);
 
   if (!loaded || data.length === 0) {
     if (!loaded) dbg('→ Showing demo data');
@@ -465,7 +498,7 @@ function getDemoData() {
   return rows;
 }
 
-window.addEventListener('load', ()=>setTimeout(initAuth,300));
+window.addEventListener('load', initAuth);
 
 // ── DETAIL LOG LOADER ─────────────────────────────────────────────────────────
 let currentDetailType = 'attendance';
@@ -493,8 +526,19 @@ function loadDetail(type, btn) {
   }).then(json => {
     document.getElementById('detail-loading').style.display='none';
     if (json.status==='ok') {
-      if (type==='attendance') renderAttendanceMatrix(json.data);
-      else renderGenericTable(json.data, json.headers, type);
+      // Populate CTR dropdown from detail data
+      if (json.data && json.data.length) {
+        const ctrs = [...new Set(json.data.map(r=>r['CTR #']||'').filter(Boolean))].sort();
+        const ctrSel = document.getElementById('ctr-filter');
+        const ctrCur = ctrSel.value;
+        ctrSel.innerHTML = '<option value="">All CTRs</option>' +
+          ctrs.map(c=>`<option value="${c}"${c===ctrCur?' selected':''}>${c}</option>`).join('');
+      }
+      // Apply CTR filter
+      const ctrVal = document.getElementById('ctr-filter').value;
+      const filtered = ctrVal ? json.data.filter(r=>(r['CTR #']||'')===ctrVal) : json.data;
+      if (type==='attendance') renderAttendanceMatrix(filtered);
+      else renderGenericTable(filtered, json.headers, type);
     } else {
       document.getElementById('detail-content').innerHTML='<p style="color:var(--danger);padding:16px;">Error: '+json.message+'</p>';
     }
