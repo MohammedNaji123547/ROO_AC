@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IGCC — Cost Control Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -143,6 +144,18 @@ input[type=date],select{background:#fff;border:1.5px solid var(--border);border-
       <option value="">All CTRs</option>
     </select>
   </div>
+  <div class="filter-group">
+    <span class="filter-label">Submitted By</span>
+    <select id="submitter-filter" style="min-width:160px;" onchange="applyFiltersAndRefresh()">
+      <option value="">All submitters</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">CTR #</span>
+    <select id="ctr-filter" style="min-width:130px;" onchange="applyFiltersAndRefresh()">
+      <option value="">All CTRs</option>
+    </select>
+  </div>
   <button class="btn-refresh" onclick="loadDashboard()">↻ Refresh</button>
 </div>
 
@@ -205,15 +218,7 @@ input[type=date],select{background:#fff;border:1.5px solid var(--border);border-
 // Deploy the script as "Anyone" access to use this URL
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxcu0GJQKVtE2hVbYjixahHiAzcsie-Vmu8ELRIj5zSsIcZHlxhYAB-Zo-hgqIoyXHB/exec';
 const GOOGLE_CLIENT_ID = '392743906594-f4huq0l2hf3b71tpn5hh4eba5ftt9ti0.apps.googleusercontent.com';
-const ALLOWED_EMAILS   = [
-  'mohammed.lateef@igccgroup-iq.com',
-  // Add more emails below:
-   'ahmed.hussein@igccgroup-iq.com',
-   'mohammed.hassony@igccgroup-iq.com',
-   'haider.almesaody@igccgroup.com',
-   'mohamad.latef16@gmail.com',
-];
-
+const ALLOWED_EMAILS   = ['mohammed.lateef@igccgroup-iq.com'];
 const DEPTS      = ['Civil','Mechanical','Electrical','HSE','QAQC','Planning'];
 const DEPT_COLORS= ['#0284c7','#16a34a','#f59e0b','#dc2626','#7c3aed','#0891b2'];
 
@@ -234,43 +239,47 @@ function dbg(msg) {
   console.log(msg);
 }
 
-// ── AUTH ──────────────────────────────────────────────────────────────────────
-const ACCESS_LIST = {
-  'mohammed.lateef@igccgroup-iq.com': 'IGCC2026',
-};
+// ── AUTH ───────────────────────────────────────────────────────────────────────
+const GOOGLE_CLIENT_ID = '392743906594-f4huq0l2hf3b71tpn5hh4eba5ftt9ti0.apps.googleusercontent.com';
+const ALLOWED_EMAILS   = [
+  'mohammed.lateef@igccgroup-iq.com',
+];
 let currentUser = null;
 
-function doLogin() {
-  const email = (document.getElementById('auth-email').value||'').trim().toLowerCase();
-  const pass  = (document.getElementById('auth-pass').value||'').trim();
-  if (ACCESS_LIST[email] && ACCESS_LIST[email] === pass) {
-    currentUser = { name: email.split('@')[0].replace('.',' '), email };
-    sessionStorage.setItem('igcc_dash_user', JSON.stringify(currentUser));
-    showApp();
-  } else {
-    document.getElementById('auth-error').classList.add('show');
-    document.getElementById('auth-pass').value='';
-    document.getElementById('auth-pass').focus();
-  }
-}
-function showApp() {
-  document.getElementById('auth-screen').style.display='none';
-  document.getElementById('btn-signout').style.display='block';
-  loadDashboard();
-}
-function signOut() { sessionStorage.removeItem('igcc_dash_user'); location.reload(); }
 function initAuth() {
   const saved = sessionStorage.getItem('igcc_dash_user');
   if (saved) {
     try {
-      const user = JSON.parse(saved);
-      if (ACCESS_LIST[user.email.toLowerCase()]) { currentUser=user; showApp(); return; }
+      currentUser = JSON.parse(saved);
+      if (ALLOWED_EMAILS.includes(currentUser.email.toLowerCase())) { showApp(); return; }
     } catch(e) {}
     sessionStorage.removeItem('igcc_dash_user');
   }
-  document.getElementById('auth-screen').style.display='flex';
-  setTimeout(()=>document.getElementById('auth-email').focus(), 100);
+  google.accounts.id.initialize({ client_id:GOOGLE_CLIENT_ID, callback:handleCredential, auto_select:false });
+  google.accounts.id.renderButton(document.getElementById('google-signin-btn'), { theme:'outline', size:'large', width:320 });
+  document.getElementById('auth-screen').style.display = 'flex';
 }
+
+function handleCredential(response) {
+  const p     = parseJwt(response.credential);
+  const email = (p.email||'').toLowerCase();
+  if (ALLOWED_EMAILS.includes(email)) {
+    currentUser = { name:p.name, email:p.email };
+    sessionStorage.setItem('igcc_dash_user', JSON.stringify(currentUser));
+    showApp();
+  } else {
+    document.getElementById('auth-error').classList.add('show');
+  }
+}
+
+function showApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('btn-signout').style.display = 'block';
+  loadDashboard();
+}
+
+function signOut() { sessionStorage.removeItem('igcc_dash_user'); location.reload(); }
+function parseJwt(token) { return JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))); }
 
 // ── LOAD DASHBOARD ─────────────────────────────────────────────────────────────
 async function loadDashboard() {
@@ -336,6 +345,16 @@ async function loadDashboard() {
     if (!loaded) dbg('→ Showing demo data');
     data = loaded ? data : getDemoData();
   }
+
+  // Populate Submitted By dropdown from loaded data
+  const allSubmitters = [...new Set(data.map(r=>r['Submitted By']||'').filter(Boolean))].sort();
+  const subSel = document.getElementById('submitter-filter');
+  const subCur = subSel.value;
+  subSel.innerHTML = '<option value="">All submitters</option>' +
+    allSubmitters.map(s=>`<option value="${s}"${s===subCur?' selected':''}>${s}</option>`).join('');
+
+  // Apply Submitted By filter
+  if (subCur) data = data.filter(r=>(r['Submitted By']||'')===subCur);
 
   renderDashboard(data);
   document.getElementById('loading').style.display = 'none';
@@ -498,7 +517,12 @@ function getDemoData() {
   return rows;
 }
 
-window.addEventListener('load', initAuth);
+(function() {
+  var s = document.createElement('script');
+  s.src = 'https://accounts.google.com/gsi/client';
+  s.onload = initAuth;
+  document.head.appendChild(s);
+})();
 
 // ── DETAIL LOG LOADER ─────────────────────────────────────────────────────────
 let currentDetailType = 'attendance';
