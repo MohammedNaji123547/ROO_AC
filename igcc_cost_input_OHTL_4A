@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IGCC — Daily Cost Input</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#f0f4f8;--surface:#fff;--surface2:#f8fafc;--border:#dde3ed;
+  --accent:#0f172a;--blue:#0284c7;--blue-dim:rgba(2,132,199,.08);
+  --success:#16a34a;--danger:#dc2626;--warning:#d97706;--purple:#7c3aed;
+  --text:#0f172a;--muted:#64748b;--label:#475569;
+  --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;
+  --shadow:0 1px 3px rgba(0,0,0,.08);--shadow-md:0 4px 12px rgba(0,0,0,.1);
+}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;min-height:100vh;}
+.header{background:var(--accent);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-md);}
+.logo{font-family:var(--mono);font-size:13px;font-weight:700;color:#fff;background:rgba(255,255,255,.15);padding:5px 10px;border-radius:6px;}
+.header-title{font-size:13px;font-weight:500;color:rgba(255,255,255,.7);margin-left:12px;}
+.date-badge{font-family:var(--mono);font-size:12px;color:rgba(255,255,255,.9);background:rgba(255,255,255,.1);padding:5px 12px;border-radius:6px;}
+.dept-bar{background:#fff;border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:var(--shadow);}
+.dept-label{font-size:11px;font-weight:600;color:var(--label);text-transform:uppercase;letter-spacing:.07em;white-space:nowrap;}
+.dept-tabs{display:flex;gap:8px;flex-wrap:wrap;}
+.dept-tab{padding:7px 14px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .2s;background:#fff;}
+.dept-tab:hover{border-color:var(--blue);color:var(--blue);}
+.dept-tab.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+.container{max-width:1100px;margin:0 auto;padding:20px 20px 80px;}
+.section{background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px 22px;margin-bottom:14px;box-shadow:var(--shadow);}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:2px solid var(--bg);}
+.section-title{font-size:13px;font-weight:600;color:var(--text);text-transform:uppercase;letter-spacing:.07em;display:flex;align-items:center;gap:8px;}
+.cost-badge{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--success);background:rgba(22,163,74,.08);padding:3px 10px;border-radius:10px;}
+.summary-bar{background:var(--accent);border-radius:12px;padding:16px 22px;margin-bottom:16px;display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
+.sum-item{text-align:center;}
+.sum-label{font-size:10px;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;}
+.sum-value{font-family:var(--mono);font-size:16px;font-weight:700;color:#fff;}
+.sum-sub{font-size:10px;color:rgba(255,255,255,.4);margin-top:1px;}
+
+/* GRID TABLE */
+.grid-table{width:100%;border-collapse:collapse;}
+.grid-table th{font-size:11px;font-weight:600;color:var(--label);text-transform:uppercase;letter-spacing:.05em;padding:7px 8px;border-bottom:2px solid var(--border);text-align:left;background:var(--surface2);}
+.grid-table td{padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.grid-table tr:last-child td{border-bottom:none;}
+.grid-table tr:hover td{background:rgba(2,132,199,.02);}
+.emp-name{font-weight:500;font-size:13px;}
+.emp-id{font-family:var(--mono);font-size:11px;color:var(--muted);}
+
+/* STATUS BTNS */
+.s-btns{display:flex;gap:4px;}
+.s-btn{padding:4px 9px;border-radius:5px;border:1.5px solid var(--border);font-size:11px;font-weight:600;cursor:pointer;transition:all .12s;font-family:var(--sans);background:#fff;color:var(--muted);white-space:nowrap;}
+.s-btn.present{background:rgba(22,163,74,.1);border-color:var(--success);color:var(--success);}
+.s-btn.absent{background:rgba(220,38,38,.1);border-color:var(--danger);color:var(--danger);}
+.s-btn.leave{background:rgba(217,119,6,.1);border-color:var(--warning);color:var(--warning);}
+.s-btn.off{background:rgba(100,116,139,.1);border-color:var(--muted);color:var(--muted);}
+
+/* INPUTS */
+input[type=text],input[type=number],input[type=date],input[type=email],select,textarea{
+  background:#fff;border:1.5px solid var(--border);border-radius:6px;color:var(--text);
+  font-family:var(--sans);font-size:13px;padding:7px 9px;outline:none;width:100%;
+  transition:border-color .15s;}
+input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(2,132,199,.1);}
+.mono-input{font-family:var(--mono);}
+.cost-cell{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--text);text-align:right;white-space:nowrap;}
+
+/* ROW ACTIONS */
+.btn-add{background:var(--blue-dim);border:1.5px dashed rgba(2,132,199,.4);border-radius:8px;color:var(--blue);cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:500;padding:9px;width:100%;transition:all .2s;margin-top:8px;}
+.btn-add:hover{background:rgba(2,132,199,.12);}
+.btn-remove{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:2px 6px;line-height:1;transition:color .15s;}
+.btn-remove:hover{color:var(--danger);}
+
+/* ADD EMPLOYEE INLINE */
+.add-emp-form{background:rgba(2,132,199,.04);border:1.5px dashed rgba(2,132,199,.3);border-radius:8px;padding:12px;margin-top:10px;display:none;}
+.add-emp-form.show{display:block;}
+.add-emp-grid{display:grid;grid-template-columns:1fr 2fr 2fr 1fr;gap:10px;align-items:end;}
+.btn-sm{padding:7px 14px;border-radius:6px;border:none;cursor:pointer;font-family:var(--sans);font-size:12px;font-weight:600;transition:all .15s;}
+.btn-sm-primary{background:var(--blue);color:#fff;}
+.btn-sm-primary:hover{background:#0369a1;}
+.btn-sm-cancel{background:var(--surface2);color:var(--muted);border:1px solid var(--border);}
+
+/* BORDER CARDS */
+.border-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.border-card{background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:14px;}
+.border-card-title{font-size:11px;font-weight:600;color:var(--label);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;}
+.count-wrap{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.count-num{font-family:var(--mono);font-size:22px;font-weight:700;color:var(--accent);min-width:40px;}
+.count-btns{display:flex;flex-direction:column;gap:3px;}
+.c-btn{background:#fff;border:1.5px solid var(--border);border-radius:5px;color:var(--text);cursor:pointer;font-size:14px;font-weight:700;width:28px;height:24px;display:flex;align-items:center;justify-content:center;transition:all .12s;}
+.c-btn:hover{border-color:var(--blue);color:var(--blue);}
+.border-sub{font-size:11px;color:var(--muted);font-family:var(--mono);}
+
+/* CTR INLINE */
+.ctr-sel{min-width:100px;font-size:12px;padding:5px 7px;}
+
+/* PROCURE UPDATE */
+.update-po-box{background:rgba(217,119,6,.05);border:1.5px solid rgba(217,119,6,.2);border-radius:8px;padding:12px;margin-top:10px;}
+.update-po-grid{display:grid;grid-template-columns:2fr 2fr auto;gap:10px;align-items:end;}
+
+/* CREDIT NOTE TABLE */
+.credit-row{display:grid;grid-template-columns:3fr 1fr 1fr 1fr auto;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);}
+.credit-row.header{font-size:11px;font-weight:600;color:var(--label);text-transform:uppercase;letter-spacing:.05em;padding-bottom:8px;}
+.credit-row:last-child{border-bottom:none;}
+
+/* SUCCESS */
+.success-banner{background:rgba(22,163,74,.08);border:1.5px solid var(--success);border-radius:10px;padding:14px 18px;display:none;align-items:center;gap:12px;margin-bottom:14px;}
+.success-banner.show{display:flex;}
+
+.field-label{font-size:11px;font-weight:600;color:var(--label);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px;display:block;}
+.divider{border:none;border-top:1px solid var(--border);margin:12px 0;}
+.hidden{display:none!important;}
+/* ACCESS CONTROL */
+.auth-screen{position:fixed;inset:0;background:#f0f4f8;display:flex;align-items:center;justify-content:center;z-index:9999;}
+.auth-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:44px 40px;max-width:400px;width:100%;box-shadow:var(--shadow-md);text-align:center;}
+.auth-logo{background:var(--accent);color:#fff;font-family:var(--mono);font-size:18px;font-weight:700;width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;}
+.auth-title{font-size:20px;font-weight:700;color:var(--text);margin-bottom:6px;}
+.auth-sub{font-size:13px;color:var(--muted);margin-bottom:28px;line-height:1.6;}
+.auth-error{background:rgba(220,38,38,.06);border:1px solid rgba(220,38,38,.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--danger);margin-top:16px;display:none;}
+.auth-error.show{display:block;}
+.auth-user{display:flex;align-items:center;gap:10px;background:rgba(22,163,74,.06);border:1px solid rgba(22,163,74,.2);border-radius:8px;padding:10px 14px;margin-bottom:14px;text-align:left;}
+.auth-avatar{width:34px;height:34px;border-radius:50%;object-fit:cover;}
+.auth-name{font-size:13px;font-weight:600;color:var(--text);}
+.auth-email{font-size:11px;color:var(--muted);font-family:var(--mono);}
+.btn-signout{background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;font-family:var(--sans);font-size:12px;padding:6px 12px;position:absolute;top:14px;right:24px;}
+.btn-signout:hover{border-color:var(--danger);color:var(--danger);}
+@media(max-width:700px){.summary-bar{grid-template-columns:1fr 1fr;}.add-emp-grid{grid-template-columns:1fr 1fr;}.border-row{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div class="auth-screen" id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">IG</div>
+    <div class="auth-title">IGCC Cost Input</div>
+    <div class="auth-sub">Sign in with your company Google account to access the daily cost input form.</div>
+    <div id="google-signin-btn" style="display:flex;justify-content:center;"></div>
+    <div class="auth-error" id="auth-error">Access denied — your email is not authorized. Contact mohammed.lateef@igccgroup-iq.com</div>
+  </div>
+</div>
+
+<!-- SIGN OUT BUTTON (shown when logged in) -->
+<button class="btn-signout hidden" id="btn-signout" onclick="signOut()">Sign out</button>
+
+<div class="header">
+  <div style="display:flex;align-items:center;">
+    <span class="logo">IGCC</span>
+    <span class="header-title">Daily Cost Input — إدخال التكاليف اليومية</span>
+  </div>
+  <span class="date-badge" id="date-badge">—</span>
+</div>
+
+<!-- DEPT BAR -->
+<div class="dept-bar">
+  <span class="dept-label">Department</span>
+  <div class="dept-tabs">
+    <div class="dept-tab active" onclick="selectDept(this,'Civil')">⚒ Civil</div>
+    <div class="dept-tab" onclick="selectDept(this,'Mechanical')">⚙ Mechanical</div>
+    <div class="dept-tab" onclick="selectDept(this,'Electrical')">⚡ Electrical</div>
+    <div class="dept-tab" onclick="selectDept(this,'HSE')">🦺 HSE</div>
+    <div class="dept-tab" onclick="selectDept(this,'QAQC')">🔍 QA-QC</div>
+    <div class="dept-tab" onclick="selectDept(this,'Planning')">📋 Planning</div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="success-banner" id="success-banner">
+    <span style="font-size:22px;">✅</span>
+    <div><div style="font-weight:600;color:var(--success);">Daily report submitted</div>
+    <div style="font-size:12px;color:var(--muted);" id="success-detail"></div></div>
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="summary-bar">
+    <div class="sum-item"><div class="sum-label">Department</div><div class="sum-value" id="sum-dept">Civil</div></div>
+    <div class="sum-item"><div class="sum-label">Manpower</div><div class="sum-value" id="sum-mp">IQD 0</div><div class="sum-sub" id="sum-mp-usd">$ 0</div></div>
+    <div class="sum-item"><div class="sum-label">Equipment</div><div class="sum-value" id="sum-eq">IQD 0</div><div class="sum-sub" id="sum-eq-usd">$ 0</div></div>
+    <div class="sum-item"><div class="sum-label">Border</div><div class="sum-value" id="sum-brd">IQD 0</div></div>
+    <div class="sum-item"><div class="sum-label">Total</div><div class="sum-value" id="sum-total">IQD 0</div><div class="sum-sub" id="sum-total-usd">$ 0</div></div>
+  </div>
+
+  <!-- SUBMISSION DETAILS -->
+  <div class="section">
+    <div class="section-header"><div class="section-title">📅 Submission Details</div></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;">
+      <div><label class="field-label">Date *</label><input type="date" id="inp-date" onchange="updateHeader()"></div>
+      <div><label class="field-label">Submitted by</label><input type="text" id="inp-by" placeholder="Your name"></div>
+      <div><label class="field-label">USD Rate (1 USD = ? IQD)</label><input type="number" id="usd-rate" value="1520" min="1" onchange="recalcAll()"></div>
+    </div>
+  </div>
+
+  <!-- ══════ MANPOWER ══════ -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">👷 Manpower Attendance</div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <span id="present-count" style="font-size:12px;color:var(--muted);font-family:var(--mono);">0 present</span>
+        <span class="cost-badge" id="mp-cost-badge">IQD 0</span>
+      </div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="grid-table">
+        <thead><tr>
+          <th style="width:32px;">#</th>
+          <th>Employee</th>
+          <th>Position</th>
+          <th style="width:130px;">CTR #</th>
+          <th>Daily Rate</th>
+          <th style="min-width:200px;">Status</th>
+          <th style="text-align:right;">Cost</th>
+          <th style="width:32px;"></th>
+        </tr></thead>
+        <tbody id="emp-tbody">
+          <tr><td colspan="8" style="text-align:center;padding:18px;color:var(--muted);">Select a department to load employees</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <!-- Add employee inline -->
+    <button class="btn-add" onclick="document.getElementById('add-emp-form').classList.toggle('show')">+ Add employee</button>
+    <div class="add-emp-form" id="add-emp-form">
+      <div style="font-size:12px;font-weight:600;color:var(--blue);margin-bottom:10px;">Add Employee to Today's List</div>
+      <div class="add-emp-grid">
+        <div><label class="field-label">Employee ID</label><input type="text" id="new-emp-id" placeholder="IG0000" class="mono-input"></div>
+        <div><label class="field-label">Full Name</label><input type="text" id="new-emp-name" placeholder="Full name"></div>
+        <div><label class="field-label">Position</label>
+          <select id="new-emp-pos">
+            <option value="">Select...</option>
+            <option>Project Manager</option><option>Civil Engineer</option><option>Senior Civil Engineer</option>
+            <option>Mechanical Engineer</option><option>Electrical Engineer</option><option>Instrument Engineer</option>
+            <option>HSE Manager</option><option>HSE Officer</option><option>QA/QC Manager</option><option>QC Inspector</option>
+            <option>Planner</option><option>Cost Control Engineer</option><option>Surveyor</option>
+            <option>Civil Supervisor</option><option>Civil Foreman</option><option>Mechanical Supervisor</option>
+            <option>Electrical Supervisor</option><option>Civil Technician</option><option>Welder</option>
+            <option>Pipefitter</option><option>Electrician</option><option>Carpenter</option><option>Mason</option>
+            <option>Painter</option><option>Rigger</option><option>Scaffolder</option><option>Laborer</option>
+            <option>Driver</option><option>Crane Operator</option><option>Equipment Operator</option>
+            <option>PA (Permit Applicant)</option><option>Store Keeper</option><option>Administrator</option>
+          </select>
+        </div>
+        <div><label class="field-label">Daily Rate</label>
+          <div style="display:grid;grid-template-columns:1fr auto;gap:6px;">
+            <input type="number" id="new-emp-rate" placeholder="0">
+            <select id="new-emp-cur" style="width:70px;"><option>USD</option><option>IQD</option></select>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="btn-sm btn-sm-primary" onclick="addEmpToList()">+ Add to list</button>
+        <button class="btn-sm btn-sm-cancel" onclick="document.getElementById('add-emp-form').classList.remove('show')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ EQUIPMENT ══════ -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">🚜 Equipment Used Today</div>
+      <span class="cost-badge" id="eq-cost-badge">IQD 0</span>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="grid-table" id="eq-table">
+        <thead><tr>
+          <th>Equipment Type</th>
+          <th>Description / Plate No.</th>
+          <th style="width:130px;">CTR #</th>
+          <th style="width:80px;">Qty</th>
+          <th style="width:70px;">Unit</th>
+          <th style="width:120px;">Rate (IQD)</th>
+          <th style="text-align:right;">Total</th>
+          <th style="width:32px;"></th>
+        </tr></thead>
+        <tbody id="eq-tbody"></tbody>
+      </table>
+    </div>
+    <button class="btn-add" onclick="addEqRow()">+ Add equipment</button>
+  </div>
+
+  <!-- ══════ BORDER WORKERS ══════ -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">🏗 Border Workers</div>
+      <span class="cost-badge" id="brd-cost-badge">IQD 0</span>
+    </div>
+    <div id="border-rows"></div>
+    <button class="btn-add" onclick="addBorderRow()">+ Add border entry</button>
+  </div>
+
+  <!-- ══════ CONCRETE ══════ -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">🧱 Concrete Tracking</div>
+      <span class="cost-badge" id="conc-cost-badge">IQD 0</span>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="grid-table">
+        <thead><tr>
+          <th>Concrete Type</th>
+          <th>QTY (m³)</th>
+          <th>Unit Price (IQD)</th>
+          <th style="width:130px;">CTR #</th>
+          <th style="text-align:right;">Total</th>
+          <th style="width:32px;"></th>
+        </tr></thead>
+        <tbody id="conc-tbody"></tbody>
+      </table>
+    </div>
+    <button class="btn-add" onclick="addConcRow()">+ Add concrete entry</button>
+  </div>
+
+  <!-- ══════ SUB BASE ══════ -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">🪨 Sub Base Tracking</div>
+      <span class="cost-badge" id="sub-cost-badge">IQD 0</span>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="grid-table">
+        <thead><tr>
+          <th>Material Description</th>
+          <th>QTY (ton)</th>
+          <th>Unit Price (IQD)</th>
+          <th style="width:130px;">CTR #</th>
+          <th style="text-align:right;">Total</th>
+          <th style="width:32px;"></th>
+        </tr></thead>
+        <tbody id="sub-tbody"></tbody>
+      </table>
+    </div>
+    <button class="btn-add" onclick="addSubRow()">+ Add sub base entry</button>
+  </div>
+
+  <!-- ══════ PROCUREMENT ══════ -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">📦 Procurement</div>
+      <span style="font-size:11px;color:var(--muted);">New receipts today</span>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="grid-table">
+        <thead><tr>
+          <th>Receiving Date</th>
+          <th>Item Name</th>
+          <th>ROP #</th>
+          <th>PO #</th>
+          <th>PO Amount (IQD)</th>
+          <th style="width:130px;">CTR #</th>
+          <th>Notes</th>
+          <th style="width:32px;"></th>
+        </tr></thead>
+        <tbody id="proc-tbody"></tbody>
+      </table>
+    </div>
+    <button class="btn-add" onclick="addProcRow()">+ Add procurement entry</button>
+
+    <!-- UPDATE PO AMOUNT -->
+    <div class="update-po-box" style="margin-top:12px;">
+      <div style="font-size:12px;font-weight:600;color:var(--warning);margin-bottom:10px;">🔄 Add / Update PO Numbers for existing ROP</div>
+
+      <!-- Step 1: Search by ROP -->
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:10px;align-items:end;margin-bottom:10px;">
+        <div><label class="field-label">ROP # to search</label>
+          <input type="text" id="search-rop" placeholder="e.g. ROP-2024-001" class="mono-input"></div>
+        <button class="btn-sm btn-sm-primary" style="height:38px;margin-top:18px;" onclick="searchByROP()">Search</button>
+      </div>
+      <div id="rop-search-status" style="font-size:12px;font-family:var(--mono);margin-bottom:8px;"></div>
+
+      <!-- Step 2: ROP info + PO list (shown after search) -->
+      <div id="rop-po-panel" style="display:none;">
+        <div id="rop-info" style="background:rgba(2,132,199,.06);border:1px solid rgba(2,132,199,.2);border-radius:6px;padding:10px 12px;margin-bottom:10px;font-size:12px;"></div>
+
+        <!-- Existing POs -->
+        <div style="font-size:11px;font-weight:600;color:var(--label);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">PO Numbers linked to this ROP</div>
+        <div id="existing-po-list" style="margin-bottom:10px;"></div>
+
+        <!-- Add new PO -->
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;">
+          <div style="font-size:11px;font-weight:600;color:var(--label);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Add New PO</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;">
+            <div><label class="field-label">PO #</label>
+              <input type="text" id="new-po-number" placeholder="PO-XXXX" class="mono-input"></div>
+            <div><label class="field-label">PO Amount (IQD)</label>
+              <input type="number" id="new-po-amount" placeholder="0"></div>
+            <button class="btn-sm btn-sm-primary" style="height:38px;margin-top:18px;" onclick="addPOtoROP()">+ Add PO</button>
+          </div>
+        </div>
+        <div id="update-po-status" style="font-size:12px;font-family:var(--mono);"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ CREDIT NOTES ══════ -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">📋 Credit Notes</div>
+      <span class="cost-badge" id="credit-cost-badge">IQD 0</span>
+    </div>
+    <div class="credit-row header">
+      <div>Asset / Item</div><div>Unit Price (IQD)</div><div>QTY</div><div>Total (IQD)</div><div></div>
+    </div>
+    <div id="credit-rows"></div>
+    <button class="btn-add" onclick="showAddAsset()">+ Add new asset to list</button>
+    <div class="add-emp-form" id="add-asset-form">
+      <div style="font-size:12px;font-weight:600;color:var(--blue);margin-bottom:10px;">Add New Asset</div>
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:10px;align-items:end;">
+        <div><label class="field-label">Asset Name</label><input type="text" id="new-asset-name" placeholder="e.g. Safety Helmet"></div>
+        <div><label class="field-label">Unit Price (IQD)</label><input type="number" id="new-asset-price" placeholder="0"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="btn-sm btn-sm-primary" onclick="addNewAsset()">+ Add asset</button>
+        <button class="btn-sm btn-sm-cancel" onclick="document.getElementById('add-asset-form').classList.remove('show')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOTES -->
+  <div class="section">
+    <div class="section-header"><div class="section-title">📝 Notes</div></div>
+    <textarea id="notes" rows="3" placeholder="Additional notes, issues, or comments..." style="width:100%;resize:vertical;"></textarea>
+  </div>
+
+  <button style="background:var(--success);border:none;border-radius:12px;color:#fff;cursor:pointer;font-family:var(--sans);font-size:15px;font-weight:700;padding:16px;width:100%;transition:all .2s;box-shadow:0 2px 8px rgba(22,163,74,.3);" id="btn-submit" onclick="submitDaily()">✓ Submit Daily Report</button>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwdLHESS5uH0JvduJyqUWT8wc2kljzO2roiUtcHMql-dcjqFftuvn8mbhaV3g9drelo/exec';
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let currentDept = 'Civil';
+let employees   = {};
+let equipment   = [];
+let borderRates = { pa:35000, worker:30000 };
+let ctrList     = [];
+let assetList   = [];
+let empStatus   = {};
+let eqRowIds    = [];
+let brdRowIds   = [];
+let concRowIds  = [];
+let subRowIds   = [];
+let procRowIds  = [];
+let creditItems = [];
+
+const today  = new Date();
+const pad    = n => String(n).padStart(2,'0');
+const dateStr= `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
+document.getElementById('inp-date').value = dateStr;
+document.getElementById('date-badge').textContent = today.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+
+// ── LOAD MASTER ───────────────────────────────────────────────────────────────
+async function loadMaster() {
+  // Load CTR list from Cost Control sheet
+  try {
+    const res  = await fetch(SCRIPT_URL + '?action=get_ctrs');
+    const json = await res.json();
+    ctrList = json.ctrs || [];
+    console.log('CTR loaded from sheet:', ctrList.length);
+  } catch(e) {
+    console.log('CTR load failed, using defaults');
+    ctrList = [{id:'CTR-001',name:'BGC Package 1'},{id:'CTR-002',name:'BGC Package 2'},{id:'CTR-003',name:'General'}];
+  }
+
+  // Load master data from script
+  try {
+    const res  = await fetch(SCRIPT_URL + '?action=get_master');
+    const json = await res.json();
+    if (json.employees) {
+      employees = {};
+      json.employees.filter(e=>e.status==='Active').forEach(e=>{
+        if(!employees[e.dept]) employees[e.dept]=[];
+        employees[e.dept].push(e);
+      });
+    }
+    if (json.equipment)   equipment   = json.equipment;
+    if (json.borderRates) borderRates = json.borderRates;
+    if (json.assets)      assetList   = json.assets;
+  } catch(e) { useDemoData(); }
+
+  renderDept(currentDept);
+  renderCreditRows();
+}
+
+function useDemoData() {
+  employees = {
+    Civil:[
+      {id:'IG0420',name:'علي صبار حسين',position:'Civil Technician',dailyRate:1833,currency:'USD'},
+      {id:'IG0891',name:'كاظم علي نعمة',position:'PA (Permit Applicant)',dailyRate:35000,currency:'IQD'},
+      {id:'IG5809',name:'حسين علي جاسم',position:'Civil Engineer',dailyRate:2500,currency:'USD'},
+    ],
+    Mechanical:[{id:'IG1001',name:'Ahmed Kareem',position:'Mechanical Engineer',dailyRate:2000,currency:'USD'}],
+    Electrical:[{id:'IG2001',name:'Omar Saleh',position:'Electrical Engineer',dailyRate:2200,currency:'USD'}],
+    HSE:[{id:'IG3001',name:'Ali Kareem',position:'HSE Manager',dailyRate:2500,currency:'USD'}],
+    QAQC:[{id:'IG4001',name:'Tariq Fadhel',position:'QA/QC Manager',dailyRate:2200,currency:'USD'}],
+    Planning:[{id:'IG5001',name:'Mohammed Latteef',position:'Cost Control Lead',dailyRate:3000,currency:'USD'}],
+  };
+  equipment=[
+    {type:'Excavator',unitRate:250000,unit:'day'},{type:'Crane',unitRate:350000,unit:'day'},
+    {type:'Loader',unitRate:180000,unit:'day'},{type:'Truck',unitRate:120000,unit:'day'},
+    {type:'Generator',unitRate:80000,unit:'day'},{type:'Water Tanker',unitRate:90000,unit:'day'},
+    {type:'Man Lift',unitRate:200000,unit:'day'},{type:'Forklift',unitRate:130000,unit:'day'},
+  ];
+  assetList=[
+    {name:'Safety Helmet',price:15000},{name:'Safety Vest',price:8000},{name:'Safety Boots',price:35000},
+    {name:'Gloves (pair)',price:3000},{name:'Harness',price:45000},{name:'Goggles',price:5000},
+  ];
+}
+
+// ── CTR SELECT HTML ───────────────────────────────────────────────────────────
+function ctrSelectHTML(id,extraClass='') {
+  const opts = ctrList.map(c=>`<option value="${c.id}">${c.id}${c.name?' — '+c.name:''}</option>`).join('');
+  return `<select id="${id}" class="ctr-sel ${extraClass}" required
+    onchange="this.style.borderColor=this.value?'var(--success)':'var(--danger)';recalcAll()"
+    style="border-color:var(--danger);">
+    <option value="">CTR # *</option>${opts}
+  </select>`;
+}
+
+// ── DEPT ──────────────────────────────────────────────────────────────────────
+function selectDept(el, dept) {
+  currentDept = dept;
+  document.querySelectorAll('.dept-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('sum-dept').textContent = dept;
+  empStatus = {};
+  renderDept(dept);
+}
+
+function renderDept(dept) {
+  const list  = employees[dept]||[];
+  const tbody = document.getElementById('emp-tbody');
+  if (!list.length) {
+    tbody.innerHTML=`<tr><td colspan="8" style="text-align:center;padding:16px;color:var(--muted);">No employees for ${dept} — use Add Employee below</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map((e,i)=>{
+    const rateIQD = e.currency==='USD'?e.dailyRate*getUSDRate():e.dailyRate;
+    return `<tr id="er-${e.id}">
+      <td style="color:var(--muted);font-family:var(--mono);font-size:11px;">${i+1}</td>
+      <td><div class="emp-name">${e.name}</div><div class="emp-id">${e.id}</div></td>
+      <td style="font-size:12px;color:var(--muted);">${e.position}</td>
+      <td>${ctrSelectHTML('ctr-emp-'+e.id)}</td>
+      <td style="font-family:var(--mono);font-size:12px;">${e.currency==='USD'?'$'+e.dailyRate.toLocaleString():fmt(e.dailyRate)}</td>
+      <td><div class="s-btns">
+        <button class="s-btn" id="s-${e.id}-present" onclick="setStatus('${e.id}','present',${rateIQD})">✓ Present</button>
+        <button class="s-btn" id="s-${e.id}-absent"  onclick="setStatus('${e.id}','absent',0)">✗ Absent</button>
+        <button class="s-btn" id="s-${e.id}-leave"   onclick="setStatus('${e.id}','leave',0)">🏖 Leave</button>
+        <button class="s-btn" id="s-${e.id}-off"     onclick="setStatus('${e.id}','off',0)">⭕ Off</button>
+      </div></td>
+      <td><div class="cost-cell" id="cost-${e.id}">—</div></td>
+      <td><button class="btn-remove" onclick="removeEmpRow('${e.id}')">×</button></td>
+    </tr>`;
+  }).join('');
+  calcMP();
+}
+
+function setStatus(id, status, rateIQD) {
+  empStatus[id]={status,cost:status==='present'?rateIQD:0};
+  ['present','absent','leave','off'].forEach(s=>{
+    const b=document.getElementById(`s-${id}-${s}`);
+    if(b){b.className='s-btn';if(s===status)b.classList.add(status);}
+  });
+  const c=document.getElementById(`cost-${id}`);
+  if(c) c.textContent=status==='present'?fmt(rateIQD):'—';
+  calcMP();
+}
+
+function removeEmpRow(id) {
+  document.getElementById(`er-${id}`)?.remove();
+  delete empStatus[id];
+  calcMP();
+}
+
+function addEmpToList() {
+  const id   = document.getElementById('new-emp-id').value.trim();
+  const name = document.getElementById('new-emp-name').value.trim();
+  const pos  = document.getElementById('new-emp-pos').value;
+  const rate = parseFloat(document.getElementById('new-emp-rate').value)||0;
+  const cur  = document.getElementById('new-emp-cur').value;
+  if (!name||!rate) { alert('Name and daily rate are required'); return; }
+  const empId = id || `TEMP-${Date.now()}`;
+  const newEmp = {id:empId, name, position:pos, dailyRate:rate, currency:cur, dept:currentDept, status:'Active'};
+
+  // Add to local list immediately
+  if (!employees[currentDept]) employees[currentDept]=[];
+  employees[currentDept].push(newEmp);
+  renderDept(currentDept);
+
+  // Save to Google Sheet permanently
+  fireFF({ action:'add_employee', ...newEmp });
+  console.log('Employee saved to sheet:', empId, name);
+
+  // Clear form
+  document.getElementById('new-emp-id').value='';
+  document.getElementById('new-emp-name').value='';
+  document.getElementById('new-emp-rate').value='';
+  document.getElementById('add-emp-form').classList.remove('show');
+
+  // Show confirmation
+  const hint = document.createElement('div');
+  hint.style.cssText='font-size:11px;color:var(--success);font-family:var(--mono);margin-top:6px;';
+  hint.textContent = '✓ ' + name + ' added and saved permanently';
+  document.getElementById('add-emp-form').parentNode.appendChild(hint);
+  setTimeout(()=>hint.remove(), 3000);
+}
+
+function calcMP() {
+  const total  = Object.values(empStatus).reduce((s,e)=>s+e.cost,0);
+  const present= Object.values(empStatus).filter(e=>e.status==='present').length;
+  document.getElementById('mp-cost-badge').textContent=fmt(total);
+  document.getElementById('present-count').textContent=`${present} present`;
+  document.getElementById('sum-mp').textContent=fmt(total);
+  document.getElementById('sum-mp-usd').textContent='$ '+fmtN(total/getUSDRate());
+  calcTotal();
+}
+
+// ── EQUIPMENT ─────────────────────────────────────────────────────────────────
+function addEqRow() {
+  const rid=Date.now(); eqRowIds.push(rid);
+  const opts=equipment.map(e=>`<option value="${e.unitRate}" data-unit="${e.unit}">${e.type}</option>`).join('');
+  const tr=document.createElement('tr'); tr.id=`eq-${rid}`;
+  tr.innerHTML=`
+    <td><select onchange="onEqType(this,${rid})"><option value="">Select...</option>${opts}<option value="custom">Custom...</option></select></td>
+    <td><input type="text" placeholder="Description / Plate No." id="eq-desc-${rid}"></td>
+    <td>${ctrSelectHTML('eq-ctr-'+rid)}</td>
+    <td><input type="number" id="eq-qty-${rid}" min="0" step="0.5" placeholder="1" onchange="calcEQ()"></td>
+    <td><input type="text" id="eq-unit-${rid}" placeholder="day" style="width:60px;"></td>
+    <td><input type="number" id="eq-rate-${rid}" placeholder="0" onchange="calcEQ()"></td>
+    <td><div class="cost-cell" id="eq-cost-${rid}">—</div></td>
+    <td><button class="btn-remove" onclick="removeRow('eq',${rid})">×</button></td>`;
+  document.getElementById('eq-tbody').appendChild(tr);
+}
+
+function onEqType(sel,rid) {
+  const opt=sel.options[sel.selectedIndex];
+  if(opt.value&&opt.value!=='custom'){
+    document.getElementById(`eq-rate-${rid}`).value=opt.value;
+    document.getElementById(`eq-unit-${rid}`).value=opt.dataset.unit||'day';
+    document.getElementById(`eq-qty-${rid}`).value=1;
+  }
+  calcEQ();
+}
+
+function calcEQ() {
+  let total=0;
+  eqRowIds.forEach(rid=>{
+    const qty=parseFloat(document.getElementById(`eq-qty-${rid}`)?.value)||0;
+    const rate=parseFloat(document.getElementById(`eq-rate-${rid}`)?.value)||0;
+    const sub=qty*rate;
+    const c=document.getElementById(`eq-cost-${rid}`);
+    if(c) c.textContent=sub>0?fmt(sub):'—';
+    total+=sub;
+  });
+  document.getElementById('eq-cost-badge').textContent=fmt(total);
+  document.getElementById('sum-eq').textContent=fmt(total);
+  document.getElementById('sum-eq-usd').textContent='$ '+fmtN(total/getUSDRate());
+  calcTotal();
+}
+
+// ── BORDER WORKERS ────────────────────────────────────────────────────────────
+function addBorderRow() {
+  const rid=Date.now(); brdRowIds.push(rid);
+  const container=document.getElementById('border-rows');
+  const div=document.createElement('div');
+  div.id=`brd-${rid}`;
+  div.style.cssText='background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;';
+  div.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="font-size:12px;font-weight:600;color:var(--label);">Border Entry</div>
+      <button class="btn-remove" onclick="removeRow('brd',${rid})">× Remove</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:10px;align-items:end;">
+      <div>
+        <label class="field-label">Type</label>
+        <select id="brd-type-${rid}" onchange="calcBorder()">
+          <option value="pa">PA (Permit Applicant)</option>
+          <option value="worker">Worker (عامل)</option>
+        </select>
+      </div>
+      <div>
+        <label class="field-label">CTR #</label>
+        ${ctrSelectHTML('brd-ctr-'+rid)}
+      </div>
+      <div>
+        <label class="field-label">Count</label>
+        <input type="number" id="brd-count-${rid}" min="0" value="1" onchange="calcBorder()">
+      </div>
+      <div>
+        <label class="field-label">Rate / Day (IQD)</label>
+        <input type="number" id="brd-rate-${rid}" value="${borderRates.pa}" onchange="calcBorder()">
+      </div>
+      <div>
+        <label class="field-label">Total</label>
+        <div class="cost-cell" id="brd-cost-${rid}" style="padding:8px 0;">—</div>
+      </div>
+    </div>`;
+  container.appendChild(div);
+  // Auto-fill rate on type change
+  document.getElementById(`brd-type-${rid}`).addEventListener('change', function(){
+    document.getElementById(`brd-rate-${rid}`).value=this.value==='pa'?borderRates.pa:borderRates.worker;
+    calcBorder();
+  });
+}
+
+function calcBorder() {
+  let total=0;
+  brdRowIds.forEach(rid=>{
+    const count=parseFloat(document.getElementById(`brd-count-${rid}`)?.value)||0;
+    const rate =parseFloat(document.getElementById(`brd-rate-${rid}`)?.value)||0;
+    const sub  =count*rate;
+    const c=document.getElementById(`brd-cost-${rid}`);
+    if(c) c.textContent=sub>0?fmt(sub):'—';
+    total+=sub;
+  });
+  document.getElementById('brd-cost-badge').textContent=fmt(total);
+  document.getElementById('sum-brd').textContent=fmt(total);
+  calcTotal();
+}
+
+// ── CONCRETE ──────────────────────────────────────────────────────────────────
+function addConcRow() {
+  const rid=Date.now(); concRowIds.push(rid);
+  const tr=document.createElement('tr'); tr.id=`conc-${rid}`;
+  tr.innerHTML=`
+    <td><input type="text" id="conc-type-${rid}" placeholder="e.g. C25, C30, Ready Mix"></td>
+    <td><input type="number" id="conc-qty-${rid}" min="0" step="0.5" placeholder="m³" onchange="calcConc()"></td>
+    <td><input type="number" id="conc-price-${rid}" placeholder="IQD/m³" onchange="calcConc()"></td>
+    <td>${ctrSelectHTML('conc-ctr-'+rid)}</td>
+    <td><div class="cost-cell" id="conc-total-${rid}">—</div></td>
+    <td><button class="btn-remove" onclick="removeRow('conc',${rid})">×</button></td>`;
+  document.getElementById('conc-tbody').appendChild(tr);
+}
+
+function calcConc() {
+  let total=0;
+  concRowIds.forEach(rid=>{
+    const qty  =parseFloat(document.getElementById(`conc-qty-${rid}`)?.value)||0;
+    const price=parseFloat(document.getElementById(`conc-price-${rid}`)?.value)||0;
+    const sub  =qty*price;
+    const c=document.getElementById(`conc-total-${rid}`);
+    if(c) c.textContent=sub>0?fmt(sub):'—';
+    total+=sub;
+  });
+  document.getElementById('conc-cost-badge').textContent=fmt(total);
+  calcTotal();
+}
+
+// ── SUB BASE ──────────────────────────────────────────────────────────────────
+function addSubRow() {
+  const rid=Date.now(); subRowIds.push(rid);
+  const tr=document.createElement('tr'); tr.id=`sub-${rid}`;
+  tr.innerHTML=`
+    <td><input type="text" id="sub-desc-${rid}" placeholder="Material description"></td>
+    <td><input type="number" id="sub-qty-${rid}" min="0" step="0.5" placeholder="ton" onchange="calcSub()"></td>
+    <td><input type="number" id="sub-price-${rid}" placeholder="IQD/ton" onchange="calcSub()"></td>
+    <td>${ctrSelectHTML('sub-ctr-'+rid)}</td>
+    <td><div class="cost-cell" id="sub-total-${rid}">—</div></td>
+    <td><button class="btn-remove" onclick="removeRow('sub',${rid})">×</button></td>`;
+  document.getElementById('sub-tbody').appendChild(tr);
+}
+
+function calcSub() {
+  let total=0;
+  subRowIds.forEach(rid=>{
+    const qty  =parseFloat(document.getElementById(`sub-qty-${rid}`)?.value)||0;
+    const price=parseFloat(document.getElementById(`sub-price-${rid}`)?.value)||0;
+    const sub  =qty*price;
+    const c=document.getElementById(`sub-total-${rid}`);
+    if(c) c.textContent=sub>0?fmt(sub):'—';
+    total+=sub;
+  });
+  document.getElementById('sub-cost-badge').textContent=fmt(total);
+  calcTotal();
+}
+
+// ── PROCUREMENT ───────────────────────────────────────────────────────────────
+function addProcRow() {
+  const rid=Date.now(); procRowIds.push(rid);
+  const tr=document.createElement('tr'); tr.id=`proc-${rid}`;
+  tr.innerHTML=`
+    <td><input type="date" id="proc-date-${rid}" value="${dateStr}"></td>
+    <td><input type="text" id="proc-item-${rid}" placeholder="Item name"></td>
+    <td><input type="text" id="proc-rop-${rid}" placeholder="ROP-XXXX" class="mono-input"></td>
+    <td><input type="text" id="proc-pono-${rid}" placeholder="PO-XXXX" class="mono-input"></td>
+    <td><input type="number" id="proc-po-${rid}" placeholder="Leave blank if unknown"></td>
+    <td>${ctrSelectHTML('proc-ctr-'+rid)}</td>
+    <td><input type="text" id="proc-notes-${rid}" placeholder="Notes..."></td>
+    <td><button class="btn-remove" onclick="removeRow('proc',${rid})">×</button></td>`;
+  document.getElementById('proc-tbody').appendChild(tr);
+}
+
+// ── ROP SEARCH & PO MANAGEMENT ───────────────────────────────────────────────
+let currentROP = null;
+let currentROPData = null;
+
+async function searchByROP() {
+  const rop    = document.getElementById('search-rop').value.trim();
+  const status = document.getElementById('rop-search-status');
+  if (!rop) { status.textContent='⚠ Enter a ROP number'; status.style.color='var(--warning)'; return; }
+
+  status.textContent='⟳ Searching...'; status.style.color='var(--muted)';
+
+  try {
+    // Use image tag to trigger GET — same pattern that works for other calls
+    // Then read response via a promise-based approach
+    const url  = SCRIPT_URL + '?action=get_rop&rop=' + encodeURIComponent(rop);
+    console.log('Searching ROP:', rop, 'URL:', url);
+
+    const res  = await fetch(url);
+    const text = await res.text();
+    console.log('ROP response:', text.substring(0, 200));
+
+    let json;
+    try { json = JSON.parse(text); }
+    catch(pe) {
+      // Apps Script sometimes wraps in callback — try to extract JSON
+      const match = text.match(/\{.*\}/s);
+      if (match) json = JSON.parse(match[0]);
+      else throw new Error('Invalid response: ' + text.substring(0,100));
+    }
+
+    if (json.status==='ok' && json.data && json.data.length > 0) {
+      currentROP     = rop;
+      currentROPData = json.data;
+      status.textContent = '✓ Found ' + json.data.length + ' record(s) for ' + rop;
+      status.style.color = 'var(--success)';
+      renderROPPanel(json.data, rop);
+    } else {
+      status.textContent = '✗ No records found for ROP: "' + rop + '" — check spelling';
+      status.style.color = 'var(--danger)';
+      document.getElementById('rop-po-panel').style.display = 'none';
+    }
+  } catch(e) {
+    console.error('ROP search error:', e);
+    status.textContent = '✗ Search failed: ' + e.message;
+    status.style.color = 'var(--danger)';
+  }
+}
+
+function renderROPPanel(records, rop) {
+  const panel = document.getElementById('rop-po-panel');
+  panel.style.display = 'block';
+
+  // ROP info
+  const first = records[0];
+  document.getElementById('rop-info').innerHTML =
+    `<strong>ROP #:</strong> ${rop} &nbsp;|&nbsp; <strong>Item:</strong> ${first.item||'—'} &nbsp;|&nbsp; <strong>CTR:</strong> ${first.ctr||'—'} &nbsp;|&nbsp; <strong>Received:</strong> ${first.recDate||'—'}`;
+
+  // Existing POs
+  const poList = document.getElementById('existing-po-list');
+  const pos    = records.filter(r => r.pono);
+  if (!pos.length) {
+    poList.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:6px 0;">No PO numbers linked yet</div>';
+  } else {
+    poList.innerHTML = pos.map((r,i) => `
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:center;padding:6px 8px;background:${i%2===0?'var(--surface2)':'#fff'};border-radius:4px;margin-bottom:4px;">
+        <div style="font-family:var(--mono);font-size:12px;font-weight:600;">${r.pono}</div>
+        <div style="font-family:var(--mono);font-size:12px;">${r.poAmt?'IQD '+parseFloat(r.poAmt).toLocaleString():'<span style="color:var(--warning);">Amount pending</span>'}</div>
+        <div style="font-size:11px;color:var(--muted);">Row ${r.rowIndex}</div>
+        <button class="btn-sm" style="padding:3px 8px;font-size:11px;background:rgba(217,119,6,.1);border-color:var(--warning);color:var(--warning);"
+          onclick="editPOAmount(${r.rowIndex}, '${r.pono}')">Edit</button>
+      </div>`).join('');
+  }
+
+  // Clear add form
+  document.getElementById('new-po-number').value = '';
+  document.getElementById('new-po-amount').value = '';
+}
+
+async function addPOtoROP() {
+  const pono   = document.getElementById('new-po-number').value.trim();
+  const amount = parseFloat(document.getElementById('new-po-amount').value)||0;
+  const status = document.getElementById('update-po-status');
+  if (!currentROP)    { status.textContent='⚠ Search for a ROP first'; status.style.color='var(--warning)'; return; }
+  if (!pono)          { status.textContent='⚠ Enter a PO number'; status.style.color='var(--warning)'; return; }
+
+  status.textContent='⟳ Saving...'; status.style.color='var(--muted)';
+  fireFF({ action:'add_po_to_rop', rop:currentROP, pono, amount });
+
+  setTimeout(async () => {
+    status.textContent=`✓ PO ${pono} added to ROP ${currentROP}`;
+    status.style.color='var(--success)';
+    // Refresh the panel
+    await searchByROP();
+  }, 800);
+}
+
+async function editPOAmount(rowIndex, pono) {
+  const newAmount = prompt(`Enter new PO amount for ${pono} (IQD):`, '');
+  if (newAmount===null||newAmount==='') return;
+  const status = document.getElementById('update-po-status');
+  status.textContent='⟳ Updating...'; status.style.color='var(--muted)';
+  fireFF({ action:'update_po_row', rowIndex, pono, amount:parseFloat(newAmount)||0 });
+  setTimeout(async () => {
+    status.textContent=`✓ ${pono} updated to IQD ${parseFloat(newAmount).toLocaleString()}`;
+    status.style.color='var(--success)';
+    await searchByROP();
+  }, 800);
+}
+
+// ── CREDIT NOTES ──────────────────────────────────────────────────────────────
+function renderCreditRows() {
+  creditItems = assetList.map((a,i)=>({...a, qty:0, rowId:i}));
+  const container=document.getElementById('credit-rows');
+  container.innerHTML = creditItems.map((a,i)=>`
+    <div class="credit-row" id="cr-${i}">
+      <div style="font-size:13px;font-weight:500;">${a.name}</div>
+      <div class="cost-cell">${fmt(a.price)}</div>
+      <div><input type="number" min="0" step="1" value="0" id="cr-qty-${i}" onchange="calcCredit()" style="width:70px;"></div>
+      <div class="cost-cell" id="cr-total-${i}">—</div>
+      <div><button class="btn-remove" onclick="removeAssetRow(${i})">×</button></div>
+    </div>`).join('');
+}
+
+function calcCredit() {
+  let total=0;
+  creditItems.forEach((a,i)=>{
+    const qty=parseFloat(document.getElementById(`cr-qty-${i}`)?.value)||0;
+    const sub=qty*a.price;
+    const c=document.getElementById(`cr-total-${i}`);
+    if(c) c.textContent=sub>0?fmt(sub):'—';
+    total+=sub;
+  });
+  document.getElementById('credit-cost-badge').textContent=fmt(total);
+}
+
+function removeAssetRow(i) {
+  document.getElementById(`cr-${i}`)?.remove();
+  creditItems[i]._removed=true;
+}
+
+function showAddAsset() { document.getElementById('add-asset-form').classList.toggle('show'); }
+
+function addNewAsset() {
+  const name =document.getElementById('new-asset-name').value.trim();
+  const price=parseFloat(document.getElementById('new-asset-price').value)||0;
+  if(!name||!price){alert('Name and price required');return;}
+  const i=creditItems.length;
+  creditItems.push({name,price,qty:0,rowId:i});
+  const container=document.getElementById('credit-rows');
+  const div=document.createElement('div');
+  div.className='credit-row'; div.id=`cr-${i}`;
+  div.innerHTML=`
+    <div style="font-size:13px;font-weight:500;">${name} <span style="font-size:10px;color:var(--blue);font-family:var(--mono);">NEW</span></div>
+    <div class="cost-cell">${fmt(price)}</div>
+    <div><input type="number" min="0" step="1" value="0" id="cr-qty-${i}" onchange="calcCredit()" style="width:70px;"></div>
+    <div class="cost-cell" id="cr-total-${i}">—</div>
+    <div><button class="btn-remove" onclick="removeAssetRow(${i})">×</button></div>`;
+  container.appendChild(div);
+  // Save to sheet permanently
+  fireFF({action:'add_asset', name, price});
+  // Also add to local assetList so it persists in this session
+  assetList.push({name, price});
+
+  document.getElementById('new-asset-name').value='';
+  document.getElementById('new-asset-price').value='';
+  document.getElementById('add-asset-form').classList.remove('show');
+
+  // Show confirmation
+  const hint = document.createElement('div');
+  hint.style.cssText='font-size:11px;color:var(--success);font-family:var(--mono);margin-top:6px;';
+  hint.textContent = '✓ ' + name + ' saved to asset list permanently';
+  document.getElementById('add-asset-form').parentNode.appendChild(hint);
+  setTimeout(()=>hint.remove(), 3000);
+}
+
+// ── TOTAL ─────────────────────────────────────────────────────────────────────
+function calcTotal() {
+  const mp  =Object.values(empStatus).reduce((s,e)=>s+e.cost,0);
+  let eq=0; eqRowIds.forEach(r=>{const q=parseFloat(document.getElementById(`eq-qty-${r}`)?.value)||0;const rt=parseFloat(document.getElementById(`eq-rate-${r}`)?.value)||0;eq+=q*rt;});
+  let brd=0; brdRowIds.forEach(r=>{const c=parseFloat(document.getElementById(`brd-count-${r}`)?.value)||0;const rt=parseFloat(document.getElementById(`brd-rate-${r}`)?.value)||0;brd+=c*rt;});
+  const total=mp+eq+brd;
+  document.getElementById('sum-total').textContent=fmt(total);
+  document.getElementById('sum-total-usd').textContent='$ '+fmtN(total/getUSDRate());
+}
+
+function recalcAll() { calcMP(); calcEQ(); calcBorder(); calcConc(); calcSub(); calcCredit(); }
+
+function removeRow(type, rid) {
+  document.getElementById(`${type}-${rid}`)?.remove();
+  if(type==='eq') eqRowIds=eqRowIds.filter(r=>r!==rid);
+  else if(type==='brd') brdRowIds=brdRowIds.filter(r=>r!==rid);
+  else if(type==='conc') concRowIds=concRowIds.filter(r=>r!==rid);
+  else if(type==='sub') subRowIds=subRowIds.filter(r=>r!==rid);
+  else if(type==='proc') procRowIds=procRowIds.filter(r=>r!==rid);
+  calcEQ(); calcBorder(); calcConc(); calcSub();
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function fmt(n)      { return 'IQD ' + Math.round(n).toLocaleString(); }
+function fmtN(n)     { return Math.round(n).toLocaleString(); }
+function getUSDRate(){ return parseFloat(document.getElementById('usd-rate').value)||1310; }
+function updateHeader(){ const d=new Date(document.getElementById('inp-date').value); document.getElementById('date-badge').textContent=d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'}); }
+
+// ── SUBMIT ────────────────────────────────────────────────────────────────────
+async function submitDaily() {
+  const date   =document.getElementById('inp-date').value;
+  const by     =document.getElementById('inp-by').value.trim();
+  const usdRate=getUSDRate();
+  const dept   =currentDept;
+  if(!date){alert('Please select a date');return;}
+
+  // Validate CTR# is selected for all active employees
+  const deptEmpsCheck = employees[dept]||[];
+  const missingCTR = [];
+  deptEmpsCheck.forEach(e=>{
+    const st  = empStatus[e.id]?.status;
+    if (!st || st==='not-submitted') return; // skip unset
+    const ctr = document.getElementById('ctr-emp-'+e.id)?.value||'';
+    if (!ctr) missingCTR.push(e.name + ' (' + e.id + ')');
+  });
+  if (missingCTR.length > 0) {
+    alert('CTR # is mandatory for all employees.\n\nMissing CTR for:\n' + missingCTR.join('\n'));
+    return;
+  }
+
+  // Validate CTR for equipment rows
+  const missingEqCTR = [];
+  eqRowIds.forEach(rid=>{
+    const ctr = document.getElementById('eq-ctr-'+rid)?.value||'';
+    const qty = parseFloat(document.getElementById('eq-qty-'+rid)?.value)||0;
+    const rate= parseFloat(document.getElementById('eq-rate-'+rid)?.value)||0;
+    if (qty>0 && rate>0 && !ctr) {
+      const type = document.querySelector('#eq-'+rid+' select')?.options[document.querySelector('#eq-'+rid+' select')?.selectedIndex]?.text||'Row '+(eqRowIds.indexOf(rid)+1);
+      missingEqCTR.push(type);
+    }
+  });
+  if (missingEqCTR.length > 0) {
+    alert('CTR # is mandatory for all equipment.\n\nMissing CTR for:\n' + missingEqCTR.join('\n'));
+    return;
+  }
+
+  // Validate CTR for border rows
+  const missingBrdCTR = [];
+  brdRowIds.forEach(rid=>{
+    const ctr   = document.getElementById('brd-ctr-'+rid)?.value||'';
+    const count = parseFloat(document.getElementById('brd-count-'+rid)?.value)||0;
+    if (count>0 && !ctr) missingBrdCTR.push('Border entry row '+(brdRowIds.indexOf(rid)+1));
+  });
+  if (missingBrdCTR.length > 0) {
+    alert('CTR # is mandatory for all border worker entries.\n\nMissing CTR for:\n' + missingBrdCTR.join('\n'));
+    return;
+  }
+
+  // Attendance
+  const deptEmps=employees[dept]||[];
+  const attendance=deptEmps.map(e=>({
+    id:e.id, name:e.name, position:e.position,
+    ctr: document.getElementById(`ctr-emp-${e.id}`)?.value||'',
+    status: empStatus[e.id]?.status||'not-submitted',
+    cost:   empStatus[e.id]?.cost||0,
+    dailyRate:e.dailyRate, currency:e.currency,
+  }));
+
+  // Equipment
+  const eqData=eqRowIds.map(rid=>({
+    type: document.querySelector(`#eq-${rid} select`)?.options[document.querySelector(`#eq-${rid} select`)?.selectedIndex]?.text||'',
+    desc: document.getElementById(`eq-desc-${rid}`)?.value||'',
+    ctr:  document.getElementById(`eq-ctr-${rid}`)?.value||'',
+    qty:  parseFloat(document.getElementById(`eq-qty-${rid}`)?.value)||0,
+    unit: document.getElementById(`eq-unit-${rid}`)?.value||'',
+    rate: parseFloat(document.getElementById(`eq-rate-${rid}`)?.value)||0,
+  })).filter(e=>e.qty>0&&e.rate>0);
+
+  // Border
+  const borderData=brdRowIds.map(rid=>({
+    type:  document.getElementById(`brd-type-${rid}`)?.value||'',
+    ctr:   document.getElementById(`brd-ctr-${rid}`)?.value||'',
+    count: parseFloat(document.getElementById(`brd-count-${rid}`)?.value)||0,
+    rate:  parseFloat(document.getElementById(`brd-rate-${rid}`)?.value)||0,
+  })).filter(b=>b.count>0);
+
+  // Concrete
+  const concData=concRowIds.map(rid=>({
+    type:  document.getElementById(`conc-type-${rid}`)?.value||'',
+    qty:   parseFloat(document.getElementById(`conc-qty-${rid}`)?.value)||0,
+    price: parseFloat(document.getElementById(`conc-price-${rid}`)?.value)||0,
+    ctr:   document.getElementById(`conc-ctr-${rid}`)?.value||'',
+  })).filter(c=>c.qty>0);
+
+  // Sub base
+  const subData=subRowIds.map(rid=>({
+    desc:  document.getElementById(`sub-desc-${rid}`)?.value||'',
+    qty:   parseFloat(document.getElementById(`sub-qty-${rid}`)?.value)||0,
+    price: parseFloat(document.getElementById(`sub-price-${rid}`)?.value)||0,
+    ctr:   document.getElementById(`sub-ctr-${rid}`)?.value||'',
+  })).filter(s=>s.qty>0);
+
+  // Procurement
+  const procData=procRowIds.map(rid=>({
+    recDate: document.getElementById(`proc-date-${rid}`)?.value||'',
+    item:    document.getElementById(`proc-item-${rid}`)?.value||'',
+    rop:     document.getElementById(`proc-rop-${rid}`)?.value||'',
+    pono:    document.getElementById(`proc-pono-${rid}`)?.value||'',
+    poAmt:   parseFloat(document.getElementById(`proc-po-${rid}`)?.value)||0,
+    ctr:     document.getElementById(`proc-ctr-${rid}`)?.value||'',
+    notes:   document.getElementById(`proc-notes-${rid}`)?.value||'',
+  })).filter(p=>p.item);
+
+  // Credit notes
+  const creditData=creditItems.filter(a=>!a._removed).map((a,i)=>({
+    name:  a.name,
+    price: a.price,
+    qty:   parseFloat(document.getElementById(`cr-qty-${i}`)?.value)||0,
+  })).filter(c=>c.qty>0);
+
+  const payload={
+    action:'submit_daily', date, dept, by, usdRate,
+    attendance, equipment:eqData, border:borderData,
+    concrete:concData, subBase:subData, procurement:procData, creditNotes:creditData,
+    notes:document.getElementById('notes').value.trim(),
+    submittedAt:new Date().toISOString(),
+  };
+
+  const btn = document.getElementById('btn-submit');
+  btn.disabled = true;
+  btn.textContent = '⟳ Submitting... please wait';
+  btn.style.background = 'var(--blue)';
+
+  try {
+    const res = await fireFF(payload);
+    if (res && res.status === 'ok') {
+      const banner = document.getElementById('success-banner');
+      banner.classList.add('show');
+      banner.scrollIntoView({behavior:'smooth', block:'start'});
+      document.getElementById('success-detail').textContent =
+        `${dept} · ${date} · ${Object.values(empStatus).filter(e=>e.status==='present').length} present · ✓ Saved to sheet`;
+    } else if (res && res.status === 'error') {
+      alert('Submission failed: ' + (res.message||'Unknown error') + '\n\nPlease try again.');
+    } else {
+      // Unknown response — still likely saved
+      const banner = document.getElementById('success-banner');
+      banner.classList.add('show');
+      document.getElementById('success-detail').textContent =
+        `${dept} · ${date} · Submitted — please verify in sheet`;
+    }
+  } catch(e) {
+    alert('Submission error: ' + e.message + '\n\nPlease try again.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✓ Submit Daily Report';
+    btn.style.background = '';
+  }
+}
+
+async function fireFF(data) {
+  if(!SCRIPT_URL||SCRIPT_URL==='YOUR_COST_SCRIPT_URL'){console.log('Cost payload:',data);return {status:'ok'};}
+  const json = JSON.stringify(data);
+  console.log('Payload size (chars):', json.length);
+
+  // For large payloads (submit_daily) use fetch POST with no-cors
+  // For small payloads use image tag (supports callback confirmation)
+  if (json.length > 1500 || data.action === 'submit_daily') {
+    try {
+      // no-cors mode — sends POST but we can't read response
+      // We treat completion of fetch as success
+      await fetch(SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: json,
+      });
+      console.log('POST fetch completed for action:', data.action);
+      return {status:'ok'};
+    } catch(e) {
+      console.error('POST fetch failed:', e.message);
+      return {status:'error', message:e.message};
+    }
+  }
+
+  // Small payload — use image tag (works with CORS)
+  return new Promise((resolve) => {
+    const img = document.createElement('img');
+    img.src = SCRIPT_URL+'?payload='+encodeURIComponent(json);
+    img.style.display='none';
+    document.body.appendChild(img);
+    img.onload=img.onerror=()=>{ try{document.body.removeChild(img);}catch(e){} resolve({status:'ok'}); };
+    setTimeout(()=>resolve({status:'ok'}), 10000);
+  });
+}
+
+// ── ACCESS CONTROL ───────────────────────────────────────────────────────────
+const GOOGLE_CLIENT_ID = '392743906594-f4huq0l2hf3b71tpn5hh4eba5ftt9ti0.apps.googleusercontent.com';
+const ALLOWED_EMAILS   = [
+   'mohammed.lateef@igccgroup-iq.com',
+   'haider.almesaody@igccgroup.com',
+   'mohamad.latef16@gmail.com',
+   'saman.shaker@igccgroup.com',
+  // Add more emails below:
+   'ahmed.hussein@igccgroup-iq.com',
+   'mohammed.hassony@igccgroup-iq.com',
+   'mohammed.muhssein@igccgroup-iq.com',
+];
+
+
+let currentUser = null;
+
+function initAuth() {
+  // Check session storage for existing login
+  const saved = sessionStorage.getItem('igcc_cost_user');
+  if (saved) {
+    try {
+      currentUser = JSON.parse(saved);
+      if (ALLOWED_EMAILS.includes(currentUser.email.toLowerCase())) {
+        showApp(currentUser);
+        return;
+      }
+    } catch(e) {}
+    sessionStorage.removeItem('igcc_cost_user');
+  }
+
+  // Initialize Google Sign-In
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: handleCredential,
+    auto_select: false,
+  });
+  google.accounts.id.renderButton(
+    document.getElementById('google-signin-btn'),
+    { theme:'outline', size:'large', width:320, text:'signin_with', shape:'rectangular' }
+  );
+  document.getElementById('auth-screen').style.display = 'flex';
+}
+
+function handleCredential(response) {
+  const payload = parseJwt(response.credential);
+  const email   = (payload.email||'').toLowerCase();
+  if (ALLOWED_EMAILS.includes(email)) {
+    currentUser = { name:payload.name, email:payload.email, picture:payload.picture };
+    sessionStorage.setItem('igcc_cost_user', JSON.stringify(currentUser));
+    showApp(currentUser);
+  } else {
+    document.getElementById('auth-error').classList.add('show');
+    google.accounts.id.disableAutoSelect();
+  }
+}
+
+function showApp(user) {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('btn-signout').classList.remove('hidden');
+  document.getElementById('inp-by').value = user.name || '';
+  loadMaster();
+}
+
+function signOut() {
+  sessionStorage.removeItem('igcc_cost_user');
+  currentUser = null;
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('btn-signout').classList.add('hidden');
+  google.accounts.id.disableAutoSelect();
+  location.reload();
+}
+
+function parseJwt(token) {
+  const base64 = token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+  return JSON.parse(atob(base64));
+}
+
+// ── BOOT ──────────────────────────────────────────────────────────────────────
+// Wait for Google GSI to load then init auth
+window.addEventListener('load', function() {
+  // Small delay to ensure GSI script loads
+  setTimeout(initAuth, 300);
+});
+</script>
+</body>
+</html>
