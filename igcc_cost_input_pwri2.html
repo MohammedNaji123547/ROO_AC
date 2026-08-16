@@ -93,8 +93,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
 /* CTR INLINE */
 .ctr-sel{min-width:100px;font-size:12px;padding:5px 7px;}
 /* Searchable CTR select */
-.ctr-wrap{position:relative;display:inline-block;min-width:130px;}
-.ctr-wrap input.ctr-search{width:100%;padding:5px 7px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;font-family:var(--sans);outline:none;}
+.ctr-wrap{position:relative;display:inline-block;width:100%;min-width:80px;}
+.ctr-wrap input.ctr-search{width:100%;padding:5px 7px;border:1.5px solid var(--border);border-radius:6px;font-size:11px;font-family:var(--mono);outline:none;text-overflow:ellipsis;white-space:nowrap;overflow:hidden;cursor:pointer;}
 .ctr-wrap input.ctr-search:focus{border-color:var(--blue);}
 .ctr-wrap input.ctr-search.has-value{border-color:var(--success);}
 .ctr-wrap input.ctr-search.no-value{border-color:var(--danger);}
@@ -216,7 +216,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
           <th style="width:32px;">#</th>
           <th>Employee</th>
           <th>Position</th>
-          <th style="width:130px;">CTR #</th>
+          <th style="min-width:160px;max-width:220px;">CTR #</th>
           <th>Daily Rate</th>
           <th style="min-width:200px;">Status</th>
           <th style="text-align:right;">Cost</th>
@@ -274,7 +274,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
         <thead><tr>
           <th>Equipment Type</th>
           <th>Description / Plate No.</th>
-          <th style="width:130px;">CTR #</th>
+          <th style="min-width:160px;max-width:220px;">CTR #</th>
           <th style="width:80px;">Qty</th>
           <th style="width:70px;">Unit</th>
           <th style="width:120px;">Rate (IQD)</th>
@@ -309,7 +309,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
           <th>Concrete Type</th>
           <th>QTY (m³)</th>
           <th>Unit Price (IQD)</th>
-          <th style="width:130px;">CTR #</th>
+          <th style="min-width:160px;max-width:220px;">CTR #</th>
           <th style="text-align:right;">Total</th>
           <th style="width:32px;"></th>
         </tr></thead>
@@ -331,7 +331,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
           <th>Material Description</th>
           <th>QTY (ton)</th>
           <th>Unit Price (IQD)</th>
-          <th style="width:130px;">CTR #</th>
+          <th style="min-width:160px;max-width:220px;">CTR #</th>
           <th style="text-align:right;">Total</th>
           <th style="width:32px;"></th>
         </tr></thead>
@@ -355,7 +355,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
           <th>ROP #</th>
           <th>PO #</th>
           <th>PO Amount (IQD)</th>
-          <th style="width:130px;">CTR #</th>
+          <th style="min-width:160px;max-width:220px;">CTR #</th>
           <th>Notes</th>
           <th style="width:32px;"></th>
         </tr></thead>
@@ -520,7 +520,7 @@ function ctrSelectHTML(id, extraClass='') {
   return `<div class="ctr-wrap" id="wrap-${id}">
     <input type="text" class="ctr-search no-value" id="${id}-search" placeholder="CTR # *"
       autocomplete="off"
-      onfocus="openCTRdd('${id}')"
+      onfocus="this.style.minWidth='200px';openCTRdd('${id}')" onblur="this.style.minWidth=''"
       oninput="filterCTR('${id}')"
       onblur="setTimeout(()=>closeCTRdd('${id}'),200)">
     <input type="hidden" id="${id}" required>
