@@ -92,6 +92,18 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
 
 /* CTR INLINE */
 .ctr-sel{min-width:100px;font-size:12px;padding:5px 7px;}
+/* Searchable CTR select */
+.ctr-wrap{position:relative;display:inline-block;min-width:130px;}
+.ctr-wrap input.ctr-search{width:100%;padding:5px 7px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;font-family:var(--sans);outline:none;}
+.ctr-wrap input.ctr-search:focus{border-color:var(--blue);}
+.ctr-wrap input.ctr-search.has-value{border-color:var(--success);}
+.ctr-wrap input.ctr-search.no-value{border-color:var(--danger);}
+.ctr-dd{position:absolute;top:calc(100% + 2px);left:0;right:0;background:#fff;border:1.5px solid var(--blue);border-radius:8px;z-index:9999;display:none;box-shadow:var(--shadow-md);max-height:200px;overflow-y:auto;}
+.ctr-dd.open{display:block;}
+.ctr-opt{padding:7px 10px;font-size:12px;cursor:pointer;border-bottom:1px solid var(--border);}
+.ctr-opt:last-child{border-bottom:none;}
+.ctr-opt:hover{background:var(--blue-dim);color:var(--blue);}
+.ctr-opt mark{background:none;color:var(--blue);font-weight:700;}
 
 /* PROCURE UPDATE */
 .update-po-box{background:rgba(217,119,6,.05);border:1.5px solid rgba(217,119,6,.2);border-radius:8px;padding:12px;margin-top:10px;}
@@ -504,18 +516,65 @@ function useDemoData() {
 }
 
 // ── CTR SELECT HTML ───────────────────────────────────────────────────────────
-function ctrSelectHTML(id,extraClass='') {
-  // PWRI-2: show CTR# — CTR Name concatenated as both value and label
-  const opts = ctrList.map(c=>{
-    const label = c.id + (c.name ? ' — ' + c.name : '');
-    const value = label; // store full concatenated value
-    return `<option value="${value}">${label}</option>`;
-  }).join('');
-  return `<select id="${id}" class="ctr-sel ${extraClass}" required
-    onchange="this.style.borderColor=this.value?'var(--success)':'var(--danger)';recalcAll()"
-    style="border-color:var(--danger);">
-    <option value="">CTR # *</option>${opts}
-  </select>`;
+function ctrSelectHTML(id, extraClass='') {
+  return `<div class="ctr-wrap" id="wrap-${id}">
+    <input type="text" class="ctr-search no-value" id="${id}-search" placeholder="CTR # *"
+      autocomplete="off"
+      onfocus="openCTRdd('${id}')"
+      oninput="filterCTR('${id}')"
+      onblur="setTimeout(()=>closeCTRdd('${id}'),200)">
+    <input type="hidden" id="${id}" required>
+    <div class="ctr-dd" id="dd-${id}"></div>
+  </div>`;
+}
+
+function openCTRdd(id) {
+  filterCTR(id);
+  document.getElementById('dd-'+id).classList.add('open');
+}
+
+function closeCTRdd(id) {
+  document.getElementById('dd-'+id).classList.remove('open');
+  // If search text doesn't match selected value, clear
+  const hidden = document.getElementById(id);
+  const search = document.getElementById(id+'-search');
+  if (hidden.value && search.value !== hidden.value) {
+    search.value = hidden.value; // restore to selected
+  }
+}
+
+function filterCTR(id) {
+  const q   = (document.getElementById(id+'-search').value||'').toLowerCase();
+  const dd  = document.getElementById('dd-'+id);
+  const matches = ctrList.filter(c => {
+    const label = c.id + (c.name?' — '+c.name:'');
+    return !q || label.toLowerCase().includes(q);
+  });
+  if (!matches.length) {
+    dd.innerHTML = '<div class="ctr-opt" style="color:var(--muted);">No results</div>';
+  } else {
+    dd.innerHTML = matches.map(c => {
+      const label = c.id + (c.name?' — '+c.name:'');
+      const hi    = q ? label.replace(new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'),'<mark>$1</mark>') : label;
+      return `<div class="ctr-opt" onmousedown="selectCTR('${id}','${label.replace(/'/g,"\'")}','${c.id.replace(/'/g,"\'")}')">
+        ${hi}</div>`;
+    }).join('');
+  }
+  dd.classList.add('open');
+}
+
+function selectCTR(id, label, value) {
+  document.getElementById(id).value           = value;
+  document.getElementById(id+'-search').value = label;
+  document.getElementById(id+'-search').classList.remove('no-value');
+  document.getElementById(id+'-search').classList.add('has-value');
+  document.getElementById('dd-'+id).classList.remove('open');
+  recalcAll();
+}
+
+function getCTRValue(id) {
+  // Get the hidden input value (the actual CTR ID)
+  return document.getElementById(id)?.value || '';
 }
 
 // ── DEPT ──────────────────────────────────────────────────────────────────────
@@ -1008,7 +1067,7 @@ function submitDaily() {
   deptEmpsCheck.forEach(e=>{
     const st  = empStatus[e.id]?.status;
     if (!st || st==='not-submitted') return; // skip unset
-    const ctr = document.getElementById('ctr-emp-'+e.id)?.value||'';
+    const ctr = getCTRValue('ctr-emp-'+e.id);
     if (!ctr) missingCTR.push(e.name + ' (' + e.id + ')');
   });
   if (missingCTR.length > 0) {
@@ -1019,7 +1078,7 @@ function submitDaily() {
   // Validate CTR for equipment rows
   const missingEqCTR = [];
   eqRowIds.forEach(rid=>{
-    const ctr = document.getElementById('eq-ctr-'+rid)?.value||'';
+    const ctr = getCTRValue('eq-ctr-'+rid);
     const qty = parseFloat(document.getElementById('eq-qty-'+rid)?.value)||0;
     const rate= parseFloat(document.getElementById('eq-rate-'+rid)?.value)||0;
     if (qty>0 && rate>0 && !ctr) {
@@ -1035,7 +1094,7 @@ function submitDaily() {
   // Validate CTR for border rows
   const missingBrdCTR = [];
   brdRowIds.forEach(rid=>{
-    const ctr   = document.getElementById('brd-ctr-'+rid)?.value||'';
+    const ctr   = getCTRValue('brd-ctr-'+rid);
     const count = parseFloat(document.getElementById('brd-count-'+rid)?.value)||0;
     if (count>0 && !ctr) missingBrdCTR.push('Border entry row '+(brdRowIds.indexOf(rid)+1));
   });
@@ -1048,7 +1107,7 @@ function submitDaily() {
   const deptEmps=employees[dept]||[];
   const attendance=deptEmps.map(e=>({
     id:e.id, name:e.name, position:e.position,
-    ctr: document.getElementById(`ctr-emp-${e.id}`)?.value||'',
+    ctr: getCTRValue('ctr-emp-'+e.id),
     status: empStatus[e.id]?.status||'not-submitted',
     cost:   empStatus[e.id]?.cost||0,
     dailyRate:e.dailyRate, currency:e.currency,
@@ -1058,7 +1117,7 @@ function submitDaily() {
   const eqData=eqRowIds.map(rid=>({
     type: document.querySelector(`#eq-${rid} select`)?.options[document.querySelector(`#eq-${rid} select`)?.selectedIndex]?.text||'',
     desc: document.getElementById(`eq-desc-${rid}`)?.value||'',
-    ctr:  document.getElementById(`eq-ctr-${rid}`)?.value||'',
+    ctr: getCTRValue('eq-ctr-'+rid),
     qty:  parseFloat(document.getElementById(`eq-qty-${rid}`)?.value)||0,
     unit: document.getElementById(`eq-unit-${rid}`)?.value||'',
     rate: parseFloat(document.getElementById(`eq-rate-${rid}`)?.value)||0,
@@ -1067,7 +1126,7 @@ function submitDaily() {
   // Border
   const borderData=brdRowIds.map(rid=>({
     type:  document.getElementById(`brd-type-${rid}`)?.value||'',
-    ctr:   document.getElementById(`brd-ctr-${rid}`)?.value||'',
+    ctr: getCTRValue('brd-ctr-'+rid),
     count: parseFloat(document.getElementById(`brd-count-${rid}`)?.value)||0,
     rate:  parseFloat(document.getElementById(`brd-rate-${rid}`)?.value)||0,
   })).filter(b=>b.count>0);
@@ -1077,7 +1136,7 @@ function submitDaily() {
     type:  document.getElementById(`conc-type-${rid}`)?.value||'',
     qty:   parseFloat(document.getElementById(`conc-qty-${rid}`)?.value)||0,
     price: parseFloat(document.getElementById(`conc-price-${rid}`)?.value)||0,
-    ctr:   document.getElementById(`conc-ctr-${rid}`)?.value||'',
+    ctr: getCTRValue('conc-ctr-'+rid),
   })).filter(c=>c.qty>0);
 
   // Sub base
@@ -1085,7 +1144,7 @@ function submitDaily() {
     desc:  document.getElementById(`sub-desc-${rid}`)?.value||'',
     qty:   parseFloat(document.getElementById(`sub-qty-${rid}`)?.value)||0,
     price: parseFloat(document.getElementById(`sub-price-${rid}`)?.value)||0,
-    ctr:   document.getElementById(`sub-ctr-${rid}`)?.value||'',
+    ctr: getCTRValue('sub-ctr-'+rid),
   })).filter(s=>s.qty>0);
 
   // Procurement
@@ -1095,7 +1154,7 @@ function submitDaily() {
     rop:     document.getElementById(`proc-rop-${rid}`)?.value||'',
     pono:    document.getElementById(`proc-pono-${rid}`)?.value||'',
     poAmt:   parseFloat(document.getElementById(`proc-po-${rid}`)?.value)||0,
-    ctr:     document.getElementById(`proc-ctr-${rid}`)?.value||'',
+    ctr: getCTRValue('proc-ctr-'+rid),
     notes:   document.getElementById(`proc-notes-${rid}`)?.value||'',
   })).filter(p=>p.item);
 
@@ -1143,6 +1202,7 @@ function fireFF(data) {
 const GOOGLE_CLIENT_ID = '392743906594-f4huq0l2hf3b71tpn5hh4eba5ftt9ti0.apps.googleusercontent.com';
 const ALLOWED_EMAILS   = [
   'mohammed.lateef@igccgroup-iq.com',
+  'saman.shaker@igccgroup.com',
   // Add more emails below:
   // 'other.user@igccgroup-iq.com',
 ];
@@ -1194,6 +1254,11 @@ function showApp(user) {
   document.getElementById('btn-signout').classList.remove('hidden');
   document.getElementById('inp-by').value = user.name || '';
   loadMaster();
+document.addEventListener('click', function(e){
+  if (!e.target.closest('.ctr-wrap')) {
+    document.querySelectorAll('.ctr-dd.open').forEach(d=>d.classList.remove('open'));
+  }
+});
 }
 
 function signOut() {
