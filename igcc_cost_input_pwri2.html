@@ -98,7 +98,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
 .ctr-wrap input.ctr-search:focus{border-color:var(--blue);}
 .ctr-wrap input.ctr-search.has-value{border-color:var(--success);}
 .ctr-wrap input.ctr-search.no-value{border-color:var(--danger);}
-.ctr-dd{position:absolute;top:calc(100% + 2px);left:0;right:0;background:#fff;border:1.5px solid var(--blue);border-radius:8px;z-index:9999;display:none;box-shadow:var(--shadow-md);max-height:200px;overflow-y:auto;}
+.ctr-dd{position:fixed;background:#fff;border:1.5px solid var(--blue);border-radius:8px;z-index:99999;display:none;box-shadow:0 8px 24px rgba(0,0,0,.15);max-height:220px;overflow-y:auto;min-width:220px;}
 .ctr-dd.open{display:block;}
 .ctr-opt{padding:7px 10px;font-size:12px;cursor:pointer;border-bottom:1px solid var(--border);}
 .ctr-opt:last-child{border-bottom:none;}
@@ -529,8 +529,15 @@ function ctrSelectHTML(id, extraClass='') {
 }
 
 function openCTRdd(id) {
+  // Position dropdown using fixed coords based on input position
+  const input = document.getElementById(id+'-search');
+  const rect  = input.getBoundingClientRect();
+  const dd    = document.getElementById('dd-'+id);
+  dd.style.top   = (rect.bottom + 4) + 'px';
+  dd.style.left  = rect.left + 'px';
+  dd.style.width = Math.max(rect.width, 220) + 'px';
   filterCTR(id);
-  document.getElementById('dd-'+id).classList.add('open');
+  dd.classList.add('open');
 }
 
 function closeCTRdd(id) {
